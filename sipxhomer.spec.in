@@ -1,0 +1,55 @@
+Name: @PACKAGE@
+Version: @VERSION@
+Release: @PACKAGE_REVISION@
+
+Summary: sipXecs example project
+License: AGPL
+Group: Telcommunications
+Vendor: SIPfoundry
+Packager: Douglas Hubler <dhubler@ezuce.com>
+Url: http://www.sipfoundry.org
+
+BuildRequires: automake
+BuildRequires: sipxsupervisor >= %version
+BuildRequires: sipxconfig >= %version
+
+Requires: sipxcommserverlib >= %version
+
+Source: %name-%version.tar.gz
+Prefix: %_prefix
+BuildRoot: %{_tmppath}/%name-%version-root
+
+%description
+This is just sample text. Change this text to describe your project in more detail.
+
+%package config
+Requires: sipxconfig >= %version
+Group: Development/Libraries
+Vendor: SIPfoundry
+Summary: Administration UI for Homer integration
+
+%description config
+Administration UI for Homer integration
+
+%prep
+%setup -q
+
+%build
+%configure --enable-rpmbuild @SIPX_RPM_CONFIGURE_OPTIONS@
+make
+
+%install
+rm -rf $RPM_BUILD_ROOT
+make DESTDIR=$RPM_BUILD_ROOT install
+
+%clean
+rm -rf $RPM_BUILD_ROOT
+
+%files
+%defattr(644,root,root,755)
+%{_datadir}/sipxecs/cfinputs/plugin.d/homer.cf
+%{_datadir}/sipxecs/cfinputs/plugin.d/lib/mysql.cf
+%attr(755,root,root)%{_bindir}/sipxhomer
+
+%files config
+%{_datadir}/java/sipXecs/sipXconfig/plugins/sipxhomer-config.jar
