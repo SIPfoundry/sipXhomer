@@ -5,5 +5,7 @@
 # Homer SIP Capture Server integration
 
 bundle agent homer {
-  # TODO
+  methods:
+    primary::
+      "any" usebundle => "postgres";
 }

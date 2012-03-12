@@ -1,12 +1,9 @@
-<div jwcid="@common/Border" borderTitle="ognl:borderTitle">
-	<span jwcid="@common/QuickHelp" value="message:test.quick.help" />
-	<form jwcid="@Form" id="ugbForm">
-		<table>
-			<tr jwcid="@common/FieldPanel" for="test:serialno"
-				field="component:testno" label="message:test.serialno">
-				<td jwcid="testno@TextField" id="test:serialno"
-					value="ognl:testNoValue" displayName="message:test.serialno" />
-			</tr>
-		</table>
-	</form>
+<div jwcid="@common/Border" useDojo="ognl:true" borderTitle="ognl:borderTitle">
+   <span jwcid="@common/ErrorMsg"/>
+  <form jwcid="form@Form" delegate="bean:validator">
+    <fieldset jwcid="@setting/SettingsFieldset"
+        settings="ognl:settings.settings" />
+    <ul jwcid="formActions@common/FormActions" callback="ognl:callback"
+        listener="listener:apply"/>
+  </form>
 </div>

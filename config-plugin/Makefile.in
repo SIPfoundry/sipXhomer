@@ -201,7 +201,7 @@ am__aclocal_m4_deps = $(top_srcdir)/config/general.m4 \
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 mkinstalldirs = $(install_sh) -d
-CONFIG_HEADER = $(top_builddir)/cpp-executable/config.h
+CONFIG_HEADER = $(top_builddir)/src/config.h
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 SOURCES =
@@ -301,10 +301,7 @@ ENDIF = @ENDIF@
 EXEEXT = @EXEEXT@
 FGREP = @FGREP@
 GCJ_OPTS = @GCJ_OPTS@
-GEM = @GEM@
-GEM_LOCAL_LIB_DIR = @GEM_LOCAL_LIB_DIR@
 GREP = @GREP@
-HAVE_SSL = @HAVE_SSL@
 IF = @IF@
 IFDEF = @IFDEF@
 IFNDEF = @IFNDEF@
@@ -333,8 +330,13 @@ NM = @NM@
 NMEDIT = @NMEDIT@
 OBJDUMP = @OBJDUMP@
 OBJEXT = @OBJEXT@
+ODBC_CFLAGS = @ODBC_CFLAGS@
+ODBC_CXXFLAGS = @ODBC_CXXFLAGS@
+ODBC_LDFLAGS = @ODBC_LDFLAGS@
+ODBC_LIBDIR = @ODBC_LIBDIR@
+ODBC_LIBS = @ODBC_LIBS@
+OPENACD_HOME = @OPENACD_HOME@
 OPENFIRE_HOME = @OPENFIRE_HOME@
-OPENSSL = @OPENSSL@
 OTOOL = @OTOOL@
 OTOOL64 = @OTOOL64@
 PACKAGE = @PACKAGE@
@@ -346,27 +348,13 @@ PACKAGE_TARNAME = @PACKAGE_TARNAME@
 PACKAGE_URL = @PACKAGE_URL@
 PACKAGE_VERSION = @PACKAGE_VERSION@
 PATH_SEPARATOR = @PATH_SEPARATOR@
-PCRE_CFLAGS = @PCRE_CFLAGS@
-PCRE_CXXFLAGS = @PCRE_CXXFLAGS@
-PCRE_LDFLAGS = @PCRE_LDFLAGS@
-PCRE_LIBS = @PCRE_LIBS@
 RANLIB = @RANLIB@
-RUBY = @RUBY@
 SED = @SED@
 SET_MAKE = @SET_MAKE@
 SHELL = @SHELL@
-SIPXCOMMSERVERINC = @SIPXCOMMSERVERINC@
-SIPXCOMMSERVERTEST_LIBS = @SIPXCOMMSERVERTEST_LIBS@
-SIPXCOMMSERVER_LIBS = @SIPXCOMMSERVER_LIBS@
 SIPXECS_NAME = @SIPXECS_NAME@
 SIPXPBXGROUP = @SIPXPBXGROUP@
 SIPXPBXUSER = @SIPXPBXUSER@
-SIPXPORTINC = @SIPXPORTINC@
-SIPXPORT_LIBS = @SIPXPORT_LIBS@
-SIPXTACKINC = @SIPXTACKINC@
-SIPXTACK_LIBS = @SIPXTACK_LIBS@
-SIPXUNITINC = @SIPXUNITINC@
-SIPXUNIT_LIBS = @SIPXUNIT_LIBS@
 SIPX_BINDIR = @SIPX_BINDIR@
 SIPX_CFDATA = @SIPX_CFDATA@
 SIPX_CFINPUTS = @SIPX_CFINPUTS@
@@ -389,13 +377,7 @@ SIPX_TMPDIR = @SIPX_TMPDIR@
 SIPX_VARDIR = @SIPX_VARDIR@
 SIPX_VARLIB = @SIPX_VARLIB@
 SIPX_VXMLDATADIR = @SIPX_VXMLDATADIR@
-SSL_CFLAGS = @SSL_CFLAGS@
-SSL_CXXFLAGS = @SSL_CXXFLAGS@
-SSL_LDFLAGS = @SSL_LDFLAGS@
-SSL_LIBS = @SSL_LIBS@
 STRIP = @STRIP@
-TOP_ABS_SRCDIR = @TOP_ABS_SRCDIR@
-TOP_SRCDIR = @TOP_SRCDIR@
 USE_IBM_JVM = @USE_IBM_JVM@
 UUDECODE = @UUDECODE@
 VERSION = @VERSION@
@@ -490,6 +472,7 @@ CommonVariablesNames = \
 	$(filter GEM%,$(.VARIABLES)) \
 	$(filter FREESWITCH%,$(.VARIABLES)) \
 	$(filter OPENFIRE%,$(.VARIABLES)) \
+	$(filter OPENACD%,$(.VARIABLES)) \
 	$(filter APACHE%,$(.VARIABLES)) \
 	$(filter PACKAGE%,$(.VARIABLES)) \
 	$(filter-out am__%,$(filter %dir,$(.VARIABLES)))
@@ -625,34 +608,34 @@ stylecmd_DEPS = \
 JarInclude = $(foreach D,$2,-C $(1) $(D))
 JAR_LIBSRC = ~/libsrc
 SUBDIRS = \
-	. \
-	test
+	.
 
 EXTRA_DIST = \
-	$(example_SRC) \
-	$(example_RESOURCES)
+	$(homer_SRC) \
+	$(homer_RESOURCES)
 
 jardir = @SIPX_JAVADIR@/sipXconfig/plugins
-JAR_FILE = sipxexample-config.jar
+JAR_FILE = sipxhomer-config.jar
 jar_DATA = $(JAR_FILE)
-example_SRC = $(shell cd $(srcdir); find src -type f -name '*.java')
-example_RESOURCES = \
+homer_SRC = $(shell cd $(srcdir); find src -type f -name '*.java')
+homer_RESOURCES = \
 	$(shell cd $(srcdir); find plugin -type f) \
-	sipxplugin.beans.xml
+	sipxplugin.beans.xml \
+	sipxhomer-plugin.properties	
 
-example_PKGS = \
+homer_PKGS = \
 	sipxconfig-neoconf \
+	sipxconfig-web \
+	commons-io \
 	tapestry-annotations \
 	tapestry-framework \
+	org.springframework.context \
 	hivemind
 
-example_DEPS = \
-	$(call JavaDep,@SIPX_JAVADIR@/sipXcommons @SIPX_JAVADIR@/sipXconfig,$(example_PKGS))
+homer_DEPS = \
+	$(call JavaDep,@SIPX_JAVADIR@/sipXcommons @SIPX_JAVADIR@/sipXconfig,$(homer_PKGS))
 
-
-# style checks java source code coding style agains proper sipxecs conforming. Not nec.
-# but you will probably find very useful
-style_SRC = $(example_SRC)
+style_SRC = $(homer_SRC)
 all: all-recursive
 
 .SUFFIXES:
@@ -1190,10 +1173,10 @@ jdoc-% : Makefile
 	fi
 	$(call ClassPathEnv,$($*_DEPS)) javadoc -d html @$<
 
-$(JAR_FILE) : javac-example $(example_RESOURCES)
+$(JAR_FILE) : javac-homer $(homer_RESOURCES)
 	jar cf $@ \
 	  $(call JarInclude,$(JAVAROOT),.) \
-	  $(call JarInclude,$(srcdir),$(example_RESOURCES))
+	  $(call JarInclude,$(srcdir),$(homer_RESOURCES))
 
 precommit : style validate;
 

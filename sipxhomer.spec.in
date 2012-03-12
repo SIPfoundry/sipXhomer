@@ -12,6 +12,7 @@ Url: http://www.sipfoundry.org
 BuildRequires: automake
 BuildRequires: sipxsupervisor >= %version
 BuildRequires: sipxconfig >= %version
+BuildRequires: mysql-connector-odbc
 
 Requires: sipxcommserverlib >= %version
 

@@ -6,7 +6,24 @@
     <property name="hookId" value="HomerHook"/>
   </bean>
 
-  <bean id="homer" class="org.sipfoundry.sipxconfig.homer.Homer">
+  <bean id="homer" class="org.springframework.aop.framework.ProxyFactoryBean" parent="abstractDao">
+    <property name="target" ref="homerImpl"/>
+    <property name="proxyInterfaces" value="org.sipfoundry.sipxconfig.homer.Homer"/>
   </bean>
 
+  <bean id="homerImpl" class="org.sipfoundry.sipxconfig.homer.HomerImpl">
+    <property name="settingsDao">
+      <bean parent="beanWithSettingsDao">
+        <property name="target">
+          <bean parent="beanWithSettingsDaoImpl">
+            <constructor-arg value="org.sipfoundry.sipxconfig.homer.HomerSettings"/>
+          </bean>
+        </property>
+      </bean>
+    </property>
+  </bean>
+
+  <bean id="homerSettings" class="org.sipfoundry.sipxconfig.homer.HomerSettings" parent="settingsBean">
+  </bean>
+  
 </beans>
