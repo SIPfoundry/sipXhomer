@@ -21,6 +21,8 @@ import org.sipfoundry.sipxconfig.cfgmgt.ConfigManager;
 import org.sipfoundry.sipxconfig.cfgmgt.ConfigProvider;
 import org.sipfoundry.sipxconfig.cfgmgt.ConfigRequest;
 import org.sipfoundry.sipxconfig.commserver.Location;
+import org.sipfoundry.sipxconfig.feature.Bundle;
+import org.sipfoundry.sipxconfig.feature.BundleConstraint;
 import org.sipfoundry.sipxconfig.feature.FeatureProvider;
 import org.sipfoundry.sipxconfig.feature.GlobalFeature;
 import org.sipfoundry.sipxconfig.feature.LocationFeature;
@@ -91,5 +93,12 @@ public class HomerImpl implements Homer, ConfigProvider, FeatureProvider, Messag
         ResourceBundleMessageSource rb = new ResourceBundleMessageSource();
         rb.setBasename("sipxhomer-plugin");
         return rb;
+    }
+
+    @Override
+    public void getBundleFeatures(Bundle b) {
+        if (b.isRouter()) {
+            b.addFeature(FEATURE, BundleConstraint.SINGLE_LOCATION);
+        }
     }
 }
