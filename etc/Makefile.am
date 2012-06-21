@@ -4,6 +4,10 @@ cfinputsdir = $(SIPX_CFINPUTS)/plugin.d
 dist_cfinputs_DATA = \
 	homer.cf
 
+cflibdir = $(SIPX_CFINPUTS)/plugin.d/lib
+dist_cflib_DATA = \
+	mysql.cf
+
 confdir = $(SIPX_CONFDIR)/sipxhomer
 dist_conf_DATA = \
 	sipxhomer.properties \

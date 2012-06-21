@@ -7,12 +7,13 @@
  */
 package org.sipfoundry.sipxconfig.homer;
 
+
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Writer;
+import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Set;
 
 import org.apache.commons.io.IOUtils;
@@ -22,7 +23,9 @@ import org.sipfoundry.sipxconfig.cfgmgt.ConfigProvider;
 import org.sipfoundry.sipxconfig.cfgmgt.ConfigRequest;
 import org.sipfoundry.sipxconfig.commserver.Location;
 import org.sipfoundry.sipxconfig.feature.Bundle;
-import org.sipfoundry.sipxconfig.feature.BundleConstraint;
+import org.sipfoundry.sipxconfig.feature.FeatureChangeRequest;
+import org.sipfoundry.sipxconfig.feature.FeatureChangeValidator;
+import org.sipfoundry.sipxconfig.feature.FeatureManager;
 import org.sipfoundry.sipxconfig.feature.FeatureProvider;
 import org.sipfoundry.sipxconfig.feature.GlobalFeature;
 import org.sipfoundry.sipxconfig.feature.LocationFeature;
@@ -31,47 +34,65 @@ import org.sipfoundry.sipxconfig.site.skin.MessageSourceProvider;
 import org.springframework.context.MessageSource;
 import org.springframework.context.support.ResourceBundleMessageSource;
 
+/**
+ * backup
+ * setup - initial migration
+ * ui to edit aliases,db's
+ * sync nodes ? what are nodes? edit nodes?
+ * firewall mysql
+ * edit settings
+ * separate location homer web (primary only) and global homer feature
+ * mysql C++ odbc daemon code. (get code from joegen for parsing)  
+ */
 public class HomerImpl implements Homer, ConfigProvider, FeatureProvider, MessageSourceProvider {
     private BeanWithSettingsDao<HomerSettings> m_settingsDao;    
 
     @Override
     public void replicate(ConfigManager manager, ConfigRequest request) throws IOException {
-        if (!request.applies(FEATURE)) {
+        if (!request.applies(FEATURE_CAPTURE_SERVER, FEATURE_WEB)) {
             return;
         }
+        
+        // make a design decision here: client capture is on if there is one or more capture
+        // servers configured.  Otherwise, if client was on a capture server was off, queue might
+        // build up
+        boolean clientOn = manager.getFeatureManager().isFeatureEnabled(FEATURE_CAPTURE_SERVER);
         
         Set<Location> locations = request.locations(manager);
         HomerSettings settings = getSettings();
         for (Location location : locations) {
             File dir = manager.getLocationDataDirectory(location);
-            boolean enabled = manager.getFeatureManager().isFeatureEnabled(FEATURE, location);
-            Writer cfg = new FileWriter(new File(dir, "homer.cfdat"));
+            Writer cfdat = new FileWriter(new File(dir, "homer.cfdat"));
+            boolean serverOn = manager.getFeatureManager().isFeatureEnabled(FEATURE_CAPTURE_SERVER, location);
+            boolean webOn = manager.getFeatureManager().isFeatureEnabled(FEATURE_WEB, location);
             try {
-                write(cfg, enabled, settings);
+                writeCfdat(cfdat, settings, clientOn, serverOn, webOn);                
             } finally {
-                IOUtils.closeQuietly(cfg);
+                IOUtils.closeQuietly(cfdat);
             }
         }
     }
     
-    void write(Writer w, boolean enabled, HomerSettings settings) throws IOException {
+    void writeCfdat(Writer w, HomerSettings settings, boolean clientOn, boolean serverOn, boolean webOn) throws IOException {
         CfengineModuleConfiguration cfg = new CfengineModuleConfiguration(w);
-        cfg.writeClass("webhomer", enabled);
-        if (!enabled) {
-            return;
+        cfg.writeClass(FEATURE_WEB.getId(), webOn);
+        cfg.writeClass(FEATURE_CAPTURE_SERVER.getId(), serverOn);
+        cfg.writeClass("homer", clientOn);
+        // these settings are really only meant for servers and contain passwords so
+        // no need copying them w/o reason.
+        if (serverOn || webOn) {
+            cfg.writeSettings(FEATURE_WEB.getId() + '.', settings.getSettings());
         }
-        
-        cfg.write("webhomer.", settings.getSettings());
     }
 
     @Override
-    public Collection<GlobalFeature> getAvailableGlobalFeatures() {
+    public Collection<GlobalFeature> getAvailableGlobalFeatures(FeatureManager featureManager) {
         return null;
     }
 
     @Override
-    public Collection<LocationFeature> getAvailableLocationFeatures(Location l) {
-        return Collections.singleton(FEATURE);
+    public Collection<LocationFeature> getAvailableLocationFeatures(FeatureManager featureManager, Location l) {
+        return Arrays.asList(FEATURE_CAPTURE_SERVER, FEATURE_WEB);
     }
 
     @Override
@@ -96,9 +117,20 @@ public class HomerImpl implements Homer, ConfigProvider, FeatureProvider, Messag
     }
 
     @Override
-    public void getBundleFeatures(Bundle b) {
-        if (b.isRouter()) {
-            b.addFeature(FEATURE, BundleConstraint.SINGLE_LOCATION);
+    public void getBundleFeatures(FeatureManager featureManager, Bundle b) {
+        if (b == Bundle.EXPERIMENTAL) {
+            b.addFeature(FEATURE_CAPTURE_SERVER);
+            b.addFeature(FEATURE_WEB);
         }
+    }
+
+    @Override
+    public void featureChangePrecommit(FeatureManager manager, FeatureChangeValidator validator) {
+        // just because apache is already there
+        validator.primaryLocationOnly(FEATURE_WEB);
+    }
+
+    @Override
+    public void featureChangePostcommit(FeatureManager manager, FeatureChangeRequest request) {
     }
 }

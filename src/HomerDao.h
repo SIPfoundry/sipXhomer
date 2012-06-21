@@ -10,3 +10,15 @@
 // ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
 // FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
 // details.
+
+class HomerDao
+{
+public:
+    ~HomerDao();
+    void connect(string& connection);
+
+private:
+    SQLHENV mEnv;
+    SQLHDBC mConn;
+    void checkError(SQLRETURN err, SQLHANDLE handle, SQLSMALLINT type);
+};

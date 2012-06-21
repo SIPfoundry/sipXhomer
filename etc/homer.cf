@@ -3,9 +3,81 @@
 # Licensed to the User under the AGPL license.
 
 # Homer SIP Capture Server integration
+bundle common homer_vars {
+  vars:
+    "wwwdir" string => "/var/www/html/webhomer";
+    "config" string => "";
+    "tmpdir" string => "$(wwwdir)/tmp";
+    "sqldir" string => "$(wwwdir)/sql";
+
+  classes:
+    "homerweb" expression => "any";
+}
 
 bundle agent homer {
+  classes:
+    "mysql" expression => "homerweb";
+    "apache" expression => "homerweb";
+
   methods:
-    primary::
-      "any" usebundle => "postgres";
+    homerweb::
+      "any" usebundle => mysql;
+      "any" usebundle => zz_apache;
+      "any" usebundle => homerweb_config;
+      "any" usebundle => mysql_ensure_db("homer_users", "$(homer_vars.sqldir)/homer_users.sql");
+      "any" usebundle => mysql_ensure_db("homer_db", "$(homer_vars.sqldir)/statistics.sql");
 }
+
+bundle agent homerweb_config {
+  classes:
+    any::
+      "missing_preferences" not => fileexists("$(homer_vars.wwwdir)/preferences.php");
+
+  files:
+    homerweb::
+      "$(homer_vars.wwwdir)"
+        create => "true",
+        perms => mog("755", "apache", "apache");
+
+      "$(homer_vars.tmpdir)/."
+        create => "true",
+        perms => mog("755", "apache", "apache"); # TODO: try 700?
+
+      "$(homer_vars.wwwdir)/configuration.php"
+        comment => "Homer configuration  $(this.promiser)",
+        create => "true",
+        perms => mog("644", "apache", "apache"), # TODO: try 400
+        edit_defaults => empty,
+        edit_line => homerweb_configuration_php;
+
+    homerweb.missing_preferences::
+      "$(homer_vars.wwwdir)/preferences.php"
+        comment => "Homer preferences $(this.promiser)",
+        perms => mog("644", "apache", "apache"),
+        copy_from => local_cp("$(homer_vars.wwwdir)/preferences_example.php");
+}
+
+bundle edit_line homerweb_configuration_php {
+  insert_lines:
+"<?php
+
+define('HOST', \"localhost\");
+define('PORT', 3306);
+define('USER', \"root\");
+define('PW', \"\");
+define('DB', \"homer_users\");
+define('HOMER_HOST', \"localhost\");
+define('HOMER_PORT', 3306);
+define('HOMER_USER', \"homer_user\");
+define('HOMER_PW', \"homer_password\");
+define('HOMER_DB', \"homer_db\");
+define('HOMER_TABLE', \"sip_capture\");
+define('PCAPDIR',\"$(homer_vars.tmpdir)/\");
+define('WEBPCAPLOC',\"/webhomer/tmp/\");
+define('APILOC',\"/webhomer/api/\");
+
+include(\"preferences.php\");
+?>";
+}
+
+

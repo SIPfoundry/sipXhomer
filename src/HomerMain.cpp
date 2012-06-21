@@ -1,3 +1,17 @@
+// Copyright (c) 2012 eZuce, Inc. All rights reserved.
+// Contributed to SIPfoundry under a Contributor Agreement
+//
+// This software is free software; you can redistribute it and/or modify it under
+// the terms of the Affero General Public License (AGPL) as published by the
+// Free Software Foundation; either version 3 of the License, or (at your option)
+// any later version.
+//
+// This software is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+// FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
+// details.
+
+
 #include <stdio.h>
 #include <sql.h>
 #include <sqlext.h>
@@ -7,63 +21,61 @@
 
 using namespace std;
 
-class HomerDao {
-public:
-  ~HomerDao();
-  void connect(string& connection);
-
-private:
-  SQLHENV mEnv;
-  SQLHDBC mConn;
-  void checkError(SQLRETURN err, SQLHANDLE handle, SQLSMALLINT type);
-};
-
-HomerDao::~HomerDao() {
-  SQLFreeHandle(SQL_HANDLE_ENV, mEnv);
-  SQLFreeHandle(SQL_HANDLE_ENV, mConn);
+int homer()
+{
+    HomerDao dao;
+    string conn("DATABASE=homer_db;SERVER=localhost;UID=root;DRIVER=MySQL;READONLY=0;");
+    try
+    {
+        dao.connect(conn);
+    } catch (string* e)
+    {
+        std::cout << e->c_str();
+    }
 }
 
-void HomerDao::connect(string& connection) {
-  SQLRETURN err;
-  err = SQLAllocHandle(SQL_HANDLE_ENV, SQL_NULL_HANDLE, &mEnv);
-  checkError(err, mEnv, SQL_HANDLE_ENV);
-   
-  err = SQLSetEnvAttr(mEnv, SQL_ATTR_ODBC_VERSION, (void*) SQL_OV_ODBC3, 0);
-  checkError(err, mEnv, SQL_HANDLE_ENV);
+void signal_handler(int sig)
+{
+    switch (sig)
+    {
+    case SIGPIPE:
+        Os::Logger::instance().log(FAC_SIP, PRI_INFO, "SIGPIPE caught. Ignored.");
+        break;
 
-  err = SQLAllocHandle(SQL_HANDLE_DBC, mEnv, &mConn);
-  checkError(err, mConn, SQL_HANDLE_DBC);
+    case SIGHUP:
+        Os::Logger::instance().log(FAC_SIP, PRI_INFO, "SIGHUP caught. Ignored.");
+        break;
 
-  err = SQLDriverConnect(mConn, NULL, (SQLCHAR*)connection.c_str(), SQL_NTS,
-          NULL, 0, NULL, SQL_DRIVER_NOPROMPT);
-  checkError(err, mConn, SQL_HANDLE_DBC);
+    case SIGTERM:
+        gShutdownFlag = TRUE;
+        Os::Logger::instance().log(FAC_SIP, PRI_INFO, "SIGTERM caught. Shutting down.");
+        break;
+    }
 }
 
-void HomerDao::checkError(SQLRETURN err, SQLHANDLE handle, SQLSMALLINT type) {
-   SQLINTEGER i = 0;
-   SQLINTEGER native;
-   SQLCHAR state[ 7 ];
-   SQLCHAR text[256];
-   SQLSMALLINT len;
-   SQLRETURN ret;
+int main(int argc, char *argv[])
+{
+    char* pidFile = NULL;
+    for (int i = 1; i < argc; i++)
+    {
+        if (strncmp("-v", argv[i], 2) == 0)
+        {
+            std::cout << "Version: " << PACKAGE_VERSION << PACKAGE_REVISION << std::endl;
+            exit(0);
+        }
+        else
+        {
+            pidFile = argv[i];
+        }
+    }
+    if (pidFile)
+    {
+        daemonize(pidFile);
+    }
+    signal(SIGHUP, signal_handler); // catch hangup signal
+    signal(SIGTERM, signal_handler); // catch kill signal
+    signal(SIGPIPE, signal_handler); // r/w socket failure
 
-   if (!SQL_SUCCEEDED(err)) {
-     ret = SQLGetDiagRec(type, handle, 1, state, &native, text, sizeof(text), &len);
-     if (SQL_SUCCEEDED(ret)) {
-       throw new string((char *)text);
-     } else {
-       throw new string("SQL error");
-     }
-   }
-}
-
-int main(int argc, char *argv[]) {
-  HomerDao dao;
-  string conn("DATABASE=homer_db;SERVER=localhost;UID=root;DRIVER=MySQL;READONLY=0;");
-  try {
-    dao.connect(conn);
-  } catch (string* e) {
-    std::cout << e->c_str();
-  }
+    homer();
 }
 

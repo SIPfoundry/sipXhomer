@@ -12,7 +12,8 @@ import org.sipfoundry.sipxconfig.feature.LocationFeature;
 
 
 public interface Homer {
-    public static final LocationFeature FEATURE = new LocationFeature("homer");
+    public static final LocationFeature FEATURE_WEB = new LocationFeature("homerWeb");
+    public static final LocationFeature FEATURE_CAPTURE_SERVER = new LocationFeature("homerCaptureServer");
     
     public HomerSettings getSettings();
     

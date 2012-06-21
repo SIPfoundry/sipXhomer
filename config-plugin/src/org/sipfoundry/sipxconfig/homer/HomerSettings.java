@@ -7,8 +7,8 @@
  */
 package org.sipfoundry.sipxconfig.homer;
 
+import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 
 import org.sipfoundry.sipxconfig.cfgmgt.DeployConfigOnEdit;
 import org.sipfoundry.sipxconfig.feature.Feature;
@@ -29,6 +29,6 @@ public class HomerSettings extends PersistableSettings implements DeployConfigOn
 
     @Override
     public Collection<Feature> getAffectedFeaturesOnChange() {
-        return Collections.singleton((Feature) Homer.FEATURE);
+        return Arrays.asList((Feature) Homer.FEATURE_CAPTURE_SERVER, Homer.FEATURE_WEB);
     }
 }
