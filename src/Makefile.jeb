@@ -1,0 +1,46 @@
+INCLUDES = \
+	-I./ \
+	-I../include \
+	-I../../sqa/include \
+	-I/usr/local/lib/oss-externals/include
+
+BUILDFLAGS = -D_linux -D_XOPEN_SOURCE=500 -D_REENTRANT -D_THREAD_SAFE -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE -DTHREAD_SAVE  -g -D_DEBUG -fPIC
+
+LINKFLAGS = \
+	-L/usr/local/lib/oss-externals/lib \
+	-lboost_date_time-mt \
+	-lboost_filesystem-mt \
+	-lboost_system-mt \
+	-lboost_thread-mt \
+	-lboost_program_options-mt \
+	-lpthread \
+	-ldum \
+	-lresip \
+	-lrutil \
+	-lares \
+	-lrt \
+	-ldl \
+	-lssl \
+	-lcrypto \
+	-lzmq
+
+	
+BUILD_FILES = \
+    main.cpp \
+    HEPCaptureAgent.cpp \
+    HEPTestDriver.cpp
+
+all:	$(BUILD_FILES)
+	g++ $(INCLUDES) $(BUILDFLAGS) -c main.cpp -o main.o
+	g++ $(INCLUDES) $(BUILDFLAGS) -c HEPCaptureAgent.cpp -o HEPCaptureAgent.o
+	g++ $(INCLUDES) $(BUILDFLAGS) -c HEPTestDriver.cpp -o HEPTestDriver.o
+	g++ $(INCLUDES) $(BUILDFLAGS) \
+		-o hep_agent \
+		main.o \
+		HEPCaptureAgent.o \
+	        HEPTestDriver.o \
+		$(LINKFLAGS)
+	rm *.o
+
+
+
