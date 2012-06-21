@@ -9,32 +9,51 @@ bundle common homer_vars {
     "config" string => "";
     "tmpdir" string => "$(wwwdir)/tmp";
     "sqldir" string => "$(wwwdir)/sql";
-
-  classes:
-    "homerweb" expression => "any";
 }
 
 bundle agent homer {
   classes:
-    "mysql" expression => "homerweb";
-    "apache" expression => "homerweb";
+    "mysql" expression => "homer_web";
 
   methods:
-    homerweb::
+    homer_web|homer_capture::
       "any" usebundle => mysql;
-      "any" usebundle => zz_apache;
-      "any" usebundle => homerweb_config;
-      "any" usebundle => mysql_ensure_db("homer_users", "$(homer_vars.sqldir)/homer_users.sql");
       "any" usebundle => mysql_ensure_db("homer_db", "$(homer_vars.sqldir)/statistics.sql");
+
+    homer_web::
+      "any" usebundle => mysql_ensure_db("homer_users", "$(homer_vars.sqldir)/homer_users.sql");
+      "any" usebundle => homer_web_config;
+
+    homer_capture::
+      "any" usebundle => homer_capture_config;
 }
 
-bundle agent homerweb_config {
+bundle agent homer_capture_config {
+  files:
+    homer_capture::
+      "$(sipx.SIPX_CONFDIR)/sipxhomer.ini"
+        comment => "Homer capture server",
+        create => "true",
+        perms => mog("600","$(sipx.SIPXPBXUSER)","$(sipx.SIPXPBXGROUP)"),
+        edit_defaults => empty,
+        edit_line => homer_capture_config_contents;
+}
+
+bundle edit_line homer_capture_config_contents {
+  insert_lines:
+    "$(sipx.SIPX_CFDATA)/$(sipx.location_id)/sipxhomer.ini.part"
+    	insert_type => "file";
+
+	"db-url=DATABASE=homer_db;SERVER=localhost;UID=root;DRIVER=MySQL;READONLY=0;";
+}
+
+bundle agent homer_web_config {
   classes:
     any::
       "missing_preferences" not => fileexists("$(homer_vars.wwwdir)/preferences.php");
 
   files:
-    homerweb::
+    homer_web::
       "$(homer_vars.wwwdir)"
         create => "true",
         perms => mog("755", "apache", "apache");
@@ -48,16 +67,16 @@ bundle agent homerweb_config {
         create => "true",
         perms => mog("644", "apache", "apache"), # TODO: try 400
         edit_defaults => empty,
-        edit_line => homerweb_configuration_php;
+        edit_line => homer_web_configuration_php;
 
-    homerweb.missing_preferences::
+    homer_web.missing_preferences::
       "$(homer_vars.wwwdir)/preferences.php"
         comment => "Homer preferences $(this.promiser)",
         perms => mog("644", "apache", "apache"),
         copy_from => local_cp("$(homer_vars.wwwdir)/preferences_example.php");
 }
 
-bundle edit_line homerweb_configuration_php {
+bundle edit_line homer_web_configuration_php {
   insert_lines:
 "<?php
 

@@ -1,6 +1,7 @@
 include $(top_srcdir)/config/utility.am
 
-bin_PROGRAMS = sipxhomer
+libexecdir = $(SIPX_LIBEXECDIR)
+libexec_PROGRAMS = sipxhomer
 
 sipxhomer_CXXFLAGS = \
 	-DSIPX_LOGDIR=\"@SIPX_LOGDIR@\" \

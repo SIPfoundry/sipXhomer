@@ -11,8 +11,12 @@
 // FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
 // details.
 
+#ifndef HEPDAO_H
+#define HEPDAO_H
+
 #include <sql.h>
 #include <sqlext.h>
+#include <string>
 
 using namespace std;
 
@@ -44,3 +48,5 @@ private:
     SQLHDBC mConn;
     void checkError(SQLRETURN err, SQLHANDLE handle, SQLSMALLINT type);
 };
+
+#endif

@@ -11,6 +11,12 @@
     <property name="proxyInterfaces" value="org.sipfoundry.sipxconfig.homer.Homer"/>
   </bean>
 
+  <bean id="alarmMessages" class="org.springframework.context.support.ResourceBundleMessageSource">
+    <property name="basename">
+      <value>sipxhomer-plugin</value>
+    </property>
+  </bean>
+
   <bean id="homerImpl" class="org.sipfoundry.sipxconfig.homer.HomerImpl">
     <property name="settingsDao">
       <bean parent="beanWithSettingsDao">

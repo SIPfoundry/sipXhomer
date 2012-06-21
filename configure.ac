@@ -24,7 +24,8 @@ PROG_JAVA_DEP
 AC_CONFIG_FILES([
     Makefile
     etc/Makefile
-    config-plugin/Makefile
+    bin/Makefile
     src/Makefile
+    config-plugin/Makefile
 ])
 AC_OUTPUT

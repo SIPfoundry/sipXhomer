@@ -17,10 +17,12 @@ import java.util.Collection;
 import java.util.Set;
 
 import org.apache.commons.io.IOUtils;
+import org.sipfoundry.sipxconfig.address.Address;
 import org.sipfoundry.sipxconfig.cfgmgt.CfengineModuleConfiguration;
 import org.sipfoundry.sipxconfig.cfgmgt.ConfigManager;
 import org.sipfoundry.sipxconfig.cfgmgt.ConfigProvider;
 import org.sipfoundry.sipxconfig.cfgmgt.ConfigRequest;
+import org.sipfoundry.sipxconfig.cfgmgt.KeyValueConfiguration;
 import org.sipfoundry.sipxconfig.commserver.Location;
 import org.sipfoundry.sipxconfig.feature.Bundle;
 import org.sipfoundry.sipxconfig.feature.FeatureChangeRequest;
@@ -29,10 +31,8 @@ import org.sipfoundry.sipxconfig.feature.FeatureManager;
 import org.sipfoundry.sipxconfig.feature.FeatureProvider;
 import org.sipfoundry.sipxconfig.feature.GlobalFeature;
 import org.sipfoundry.sipxconfig.feature.LocationFeature;
+import org.sipfoundry.sipxconfig.networkqueue.NetworkQueueManager;
 import org.sipfoundry.sipxconfig.setting.BeanWithSettingsDao;
-import org.sipfoundry.sipxconfig.site.skin.MessageSourceProvider;
-import org.springframework.context.MessageSource;
-import org.springframework.context.support.ResourceBundleMessageSource;
 
 /**
  * backup
@@ -44,7 +44,7 @@ import org.springframework.context.support.ResourceBundleMessageSource;
  * separate location homer web (primary only) and global homer feature
  * mysql C++ odbc daemon code. (get code from joegen for parsing)  
  */
-public class HomerImpl implements Homer, ConfigProvider, FeatureProvider, MessageSourceProvider {
+public class HomerImpl implements Homer, ConfigProvider, FeatureProvider {
     private BeanWithSettingsDao<HomerSettings> m_settingsDao;    
 
     @Override
@@ -70,7 +70,23 @@ public class HomerImpl implements Homer, ConfigProvider, FeatureProvider, Messag
             } finally {
                 IOUtils.closeQuietly(cfdat);
             }
+            
+            if (serverOn) {
+                Writer capCfg = new FileWriter(new File(dir, "sipxhomer.ini.part"));
+                Address sqa = manager.getAddressManager().getSingleAddress(NetworkQueueManager.CONTROL_ADDRESS);
+                try {
+                    writeConfig(capCfg, sqa, settings);
+                } finally {
+                    IOUtils.closeQuietly(capCfg);
+                }
+            }
         }
+    }
+    
+    void writeConfig(Writer w, Address sqa, HomerSettings settings) throws IOException {
+        KeyValueConfiguration cfg = KeyValueConfiguration.equalsSeparated(w);
+        cfg.write("sqa-control-port", sqa.getPort());
+        cfg.write("sqa-control-address", sqa.getAddress());
     }
     
     void writeCfdat(Writer w, HomerSettings settings, boolean clientOn, boolean serverOn, boolean webOn) throws IOException {
@@ -110,13 +126,6 @@ public class HomerImpl implements Homer, ConfigProvider, FeatureProvider, Messag
     }
 
     @Override
-    public MessageSource getMessageSource() {
-        ResourceBundleMessageSource rb = new ResourceBundleMessageSource();
-        rb.setBasename("sipxhomer-plugin");
-        return rb;
-    }
-
-    @Override
     public void getBundleFeatures(FeatureManager featureManager, Bundle b) {
         if (b == Bundle.EXPERIMENTAL) {
             b.addFeature(FEATURE_CAPTURE_SERVER);
@@ -126,8 +135,11 @@ public class HomerImpl implements Homer, ConfigProvider, FeatureProvider, Messag
 
     @Override
     public void featureChangePrecommit(FeatureManager manager, FeatureChangeValidator validator) {
-        // just because apache is already there
+
+        // just because apache is already there, otherwise no restrictions
         validator.primaryLocationOnly(FEATURE_WEB);
+        
+        validator.requiresAtLeastOne(FEATURE_CAPTURE_SERVER, NetworkQueueManager.FEATURE);
     }
 
     @Override
