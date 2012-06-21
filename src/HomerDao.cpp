@@ -11,7 +11,7 @@
 // FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
 // details.
 
-#include "sipXhomer/HomerDao.h"
+#include "sipxhomer/HomerDao.h"
 
 using namespace std;
 

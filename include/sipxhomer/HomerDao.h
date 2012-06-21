@@ -11,6 +11,11 @@
 // FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
 // details.
 
+#include <sql.h>
+#include <sqlext.h>
+
+using namespace std;
+
 class HomerDao
 {
 public:

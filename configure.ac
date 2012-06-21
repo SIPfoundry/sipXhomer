@@ -4,7 +4,7 @@ AC_CONFIG_AUX_DIR(config)
 AM_INIT_AUTOMAKE(foreign tar-ustar)
 m4_include([config/general.m4])
 m4_include([config/sipXlib.m4])
-AC_CONFIG_SRCDIR([src/HomerMain.cpp])
+AC_CONFIG_SRCDIR([src/main.cpp])
 AM_CONFIG_HEADER([src/config.h])
 AM_DISABLE_STATIC
 AC_PROG_LIBTOOL

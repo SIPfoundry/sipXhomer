@@ -1,7 +1,7 @@
-#include "HEPMessage.h"
-#include "ServiceOptions.h"
-#include "HEPCaptureAgent.h"
-#include "HEPTestDriver.h"
+#include "sipxhomer/HEPMessage.h"
+#include "sqa/ServiceOptions.h"
+#include "sipxhomer/HEPCaptureAgent.h"
+#include "sipxhomer/HEPTestDriver.h"
 
 #include "resip/stack/SipMessage.hxx"
 

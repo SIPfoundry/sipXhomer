@@ -1,9 +1,9 @@
 #ifndef HEPCAPTUREAGENT_H
 #define	HEPCAPTUREAGENT_H
 
-#include "ServiceOptions.h"
-#include "sqaclient.h"
-#include "HEPMessage.h"
+#include "sqa/ServiceOptions.h"
+#include "sqa/sqaclient.h"
+#include "sipxhomer/HEPMessage.h"
 #include <boost/thread.hpp>
 
 class HEPCaptureAgent

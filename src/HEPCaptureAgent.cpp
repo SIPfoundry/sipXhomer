@@ -1,7 +1,7 @@
-#include "HEPCaptureAgent.h"
-#include "OsLogger.h"
-#include "ServiceOptions.h"
-#include "sqaclient.h"
+#include "sipxhomer/HEPCaptureAgent.h"
+#include "os/OsLogger.h"
+#include "sqa/ServiceOptions.h"
+#include "sqa/sqaclient.h"
 #include "resip/stack/SipMessage.hxx"
 #include <boost/date_time.hpp>
 

@@ -1,6 +1,6 @@
-#include "HEPTestDriver.h"
-#include "HEPMessage.h"
-#include "UnitTest.h"
+#include "sipxhomer/HEPTestDriver.h"
+#include "sipxhomer/HEPMessage.h"
+#include "sqa/UnitTest.h"
 #include <string>
 #include <sstream>
 #include "resip/stack/SipMessage.hxx"

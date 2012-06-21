@@ -1,7 +1,7 @@
 #ifndef HEPTESTDRIVER_H
 #define	HEPTESTDRIVER_H
 
-#include "HEPCaptureAgent.h"
+#include "sipxhomer/HEPCaptureAgent.h"
 
 class HEPTestDriver
 {
