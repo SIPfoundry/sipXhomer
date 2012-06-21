@@ -16,10 +16,27 @@
 
 using namespace std;
 
-class HomerDao
+struct HEPDaoException : exception
 {
 public:
-    ~HomerDao();
+    HEPDaoException(char const* what) : mWhat(what) {
+    }
+
+    ~HEPDaoException() throw() {
+    }
+
+    char const* what() const throw() {
+        return mWhat.c_str();
+    }
+
+private:
+    string mWhat;
+};
+
+class HEPDao
+{
+public:
+    ~HEPDao();
     void connect(string& connection);
 
 private:

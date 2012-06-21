@@ -26,6 +26,5 @@ sipxhomer_LDFLAGS = \
 sipxhomer_SOURCES =  \
 	main.cpp \
 	HEPCaptureAgent.cpp \
-	HEPTestDriver.cpp
-	
-#	HomerDao.cpp
+	HEPTestDriver.cpp \
+	HEPDao.cpp
