@@ -16,6 +16,7 @@
 
 #include <sql.h>
 #include <sqlext.h>
+#include <resip/stack/SipMessage.hxx>
 
 struct HEPDaoException : std::exception
 {
@@ -37,17 +38,69 @@ private:
 class HEPDao
 {
 public:
+    HEPDao();
     ~HEPDao();
     void connect(std::string& connection);
     void save(resip::SipMessage* msg);
 
 private:
+    enum Capture {
+      DATE,
+      MICRO_TS,
+      METHOD,
+      REPLY_REASON,
+      RESPONSE_URI,
+
+      RESPONSE_USER,
+      FROM_USER,
+      FROM_TAG,
+      TO_USER,
+      TO_TAG,
+
+      PID_USER,
+      CONTACT_USER,
+      CONTACT_IP,
+      CONTACT_PORT,
+      AUTH_USER,
+
+      CALL_ID,
+      CALLID_ALEG,
+      VIA_1,
+      VIA_1_BRANCH,
+      CSEQ,
+
+      DIVERSION,
+      REASON,
+      CONTENT_TYPE,
+      AUTH,
+      USER_AGENT,
+
+      SOURCE_IP,
+      SOURCE_PORT,
+      DEST_IP,
+      DEST_PORT,
+      ORIGINATOR_IP,
+
+      ORIGINATOR_PORT,
+      PROTO,
+      FAMILY,
+      RTP_STAT,
+      TYPE,
+
+      NODE,
+      MSG,
+
+      _NUM_FIELDS
+    };
     SQLHENV mEnv;
     SQLHDBC mConn;
     SQLHSTMT mInsert;
+    SQLSMALLINT mType[_NUM_FIELDS];
+    int mFieldIndex;
     void checkError(SQLRETURN err, SQLHANDLE handle, SQLSMALLINT type);
-    void bindString(SQLHSTMT hnd, int col, std::string& val);
-    void bindInt(SQLHSTMT hnd, int col, int val);
+    void bind(Capture c, void *data, int len);
+    SQLSMALLINT sqlType(SQLSMALLINT t);
+    SQLLEN* sqlLen(SQLSMALLINT t, void *data);
 };
 
 #endif

@@ -25,11 +25,11 @@ bundle agent mysql_ensure_db(name, schema_sql) {
   commands:
    !db_exists::
      "/usr/bin/mysql"
-       comment => "create mysql schema $(schema_sql) for db $(name)",
+       comment => "create mysql db $(name)",
        args => "--user=root -e 'create database $(name)'";
 
      "/usr/bin/mysql"
-       comment => "create mysql schema $(schema_sql) for db $(name)",
+       comment => "adding schema $(schema_sql) to db $(name)",
        contain => useshell,
        args => "--user=root $(name) -f < $(schema_sql)";
 }

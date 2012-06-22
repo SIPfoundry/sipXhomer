@@ -12,13 +12,18 @@ bundle common homer_vars {
 }
 
 bundle agent homer {
+  vars:
+    "homer_db" slist => {
+        "$(homer_vars.sqldir)/create_sipcapture.sql",
+        "$(homer_vars.sqldir)/statistics.sql"
+    };
   classes:
     "mysql" expression => "homer_web";
 
   methods:
     homer_web|homer_capture::
       "any" usebundle => mysql;
-      "any" usebundle => mysql_ensure_db("homer_db", "$(homer_vars.sqldir)/statistics.sql");
+      "any" usebundle => mysql_ensure_db("homer_db", "$(homer_db)");
 
     homer_web::
       "any" usebundle => mysql_ensure_db("homer_users", "$(homer_vars.sqldir)/homer_users.sql");

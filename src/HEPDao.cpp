@@ -19,6 +19,16 @@
 using namespace std;
 using namespace resip;
 
+HEPDao::HEPDao() {
+  fill_n(mType, sizeof(mType), SQL_C_CHAR);
+  mType[DATE] = SQL_C_TIMESTAMP;
+  mType[MICRO_TS] = SQL_C_SBIGINT;
+  mType[CONTACT_PORT] = SQL_C_LONG;
+  mType[SOURCE_PORT] = SQL_C_LONG;
+  mType[DEST_PORT] = SQL_C_LONG;
+  mType[ORIGINATOR_PORT] = SQL_C_LONG;
+}
+
 HEPDao::~HEPDao()
 {
     SQLFreeHandle(SQL_HANDLE_ENV, mEnv);
@@ -59,25 +69,41 @@ void HEPDao::connect(string& connection)
         "?,?,?,?,?,"
         "?,?,?,?,?,"
         "?,?)";
+
     err = SQLAllocHandle(SQL_HANDLE_STMT, mConn, &mInsert);
     checkError(err, mConn, SQL_HANDLE_DBC);
-    SQLPrepare(mInsert, (SQLCHAR *)insertSql, strlen(insertSql));
+    int len = strlen(insertSql);
+    SQLPrepare(mInsert, (SQLCHAR *)insertSql, len);
+    checkError(err, mInsert, SQL_HANDLE_STMT);
 }
 
+
+// NOTE: This is not the most elegant code however, some concessions were made to
+// make this as fast as possible as you could get hundreds of inserts per second
 void HEPDao::save(SipMessage* msg)
 {
+  SQLRETURN err;
   if (msg->isInvalid())
     return;
 
-  SQLFreeStmt(mInsert, SQL_UNBIND);
-
-  int i = 1;
+  err = SQLFreeStmt(mInsert, SQL_UNBIND);
+  checkError(err, mInsert, SQL_HANDLE_STMT);
+  mFieldIndex = 0;
 
   // date
-  i++;
+  TIMESTAMP_STRUCT date;
+  date.year = 2012;
+  date.month = 6;
+  date.day = 22;
+  date.hour = 0;
+  date.minute = 0;
+  date.second = 0;
+  date.fraction = 0;
+  bind(DATE, &date, sizeof(date));
 
   // micro_ts
-  i++;
+  long long microTs = 0;
+  bind(MICRO_TS, &microTs, sizeof(microTs));
 
   // method
   string cseqMethod;
@@ -134,18 +160,16 @@ void HEPDao::save(SipMessage* msg)
       cseqMethod = "????";
       break;
     }
-    bindString(mInsert,i, cseqMethod);
+    bind(METHOD, (void *) cseqMethod.data(), cseqMethod.length());
   }
-  i++;
 
   // reply_reason
   string reason;
   if (msg->exists(h_Reasons))
   {
     reason = msg->const_header(h_Reasons).front().value().c_str();
-    bindString(mInsert, i, reason);
+    bind(REPLY_REASON, (void *) reason.data(), reason.length());
   }
-  i++;
 
   string requestLine;
   string statusLine;
@@ -156,11 +180,11 @@ void HEPDao::save(SipMessage* msg)
     ostringstream strm;
     msg->const_header(h_RequestLine).uri().encode(strm);
     requestLine = strm.str();
-    bindString(mInsert, i, requestLine);
+    bind(RESPONSE_URI, (void *) requestLine.data(), requestLine.length());
 
     // ruri_user
     requestUriUser = msg->const_header(h_RequestLine).uri().user().c_str();
-    bindString(mInsert, i + 1, requestUriUser);
+    bind(RESPONSE_USER, (void *) requestUriUser.data(), requestUriUser.length());
   }
   else
   {
@@ -168,22 +192,20 @@ void HEPDao::save(SipMessage* msg)
     msg->const_header(h_StatusLine).encode(strm);
     statusLine = strm.str();  // where does this go
   }
-  i += 2;
 
   string fromTag;
-  string user;
+  string fromUser;
   if (msg->exists(h_From))
   {
     // from_user
-    user = msg->const_header(h_From).uri().user().c_str();
-    bindString(mInsert, i, user);
+    fromUser = msg->const_header(h_From).uri().user().c_str();
+    bind(FROM_USER, (void *) fromUser.data(), fromUser.length());
 
     // from_tag
     fromTag = msg->const_header(h_From).exists(p_tag) ? msg->const_header(h_From).param(p_tag).c_str()
         : string();
-    bindString(mInsert, i + 1, fromTag);
+    bind(FROM_TAG, (void *) fromTag.data(), fromTag.length());
   }
-  i += 2;
 
   string toTag;
   string toUser;
@@ -191,14 +213,13 @@ void HEPDao::save(SipMessage* msg)
   {
     // to_user
     toUser = msg->const_header(h_To).uri().user().c_str();
-     bindString(mInsert, i, toUser);
+    bind(TO_USER, (void *) toUser.data(), toUser.length());
 
     // to_tag
     toTag = msg->const_header(h_To).exists(p_tag) ? msg->const_header(h_To).param(p_tag).c_str()
         : string();
-    bindString(mInsert, i + 1, toTag);
+    bind(TO_TAG, (void *) toTag.data(), toTag.length());
   }
-  i += 2;
 
   // pid_user
   string pidentity;
@@ -207,9 +228,8 @@ void HEPDao::save(SipMessage* msg)
     ostringstream pidStrm;
     msg->const_header(h_PAssertedIdentities).front().uri().encode(pidStrm);
     pidentity = pidStrm.str();
-    bindString(mInsert, i, pidentity);
+    bind(PID_USER, (void *) pidentity.data(), pidentity.length());
   }
-  i++;
 
   string contactUser;
   string contactHost;
@@ -218,32 +238,28 @@ void HEPDao::save(SipMessage* msg)
   {
     // contact_user
     contactUser = msg->const_header(h_Contacts).front().uri().user().c_str();
-    bindString(mInsert,i, contactUser);
+    bind(CONTACT_USER, (void *) contactUser.data(), contactUser.length());
 
     //contact_ip
     contactHost = msg->const_header(h_Contacts).front().uri().host().c_str();
-    bindString(mInsert, i, contactHost);
+    bind(CONTACT_IP, (void *) contactHost.data(), contactHost.length());
 
     //contact_port
     contactPort = msg->const_header(h_Contacts).front().uri().port();
-    bindInt(mInsert, i, contactPort);
+    bind(CONTACT_PORT, (void *) &contactPort, sizeof(contactPort));
   }
-  i++;
 
   // auth_user
-  i++;
 
   // callid
   string callId;
   if (msg->exists(h_CallID))
   {
     callId = msg->const_header(h_CallID).value().c_str();
-    bindString(mInsert, i, callId);
+    bind(CALL_ID, (void *) callId.data(), callId.length());
   }
-  i++;
 
   // callid_aleg
-  i++;
 
   string viaBranch;
   string via;
@@ -258,12 +274,10 @@ void HEPDao::save(SipMessage* msg)
     if (frontVia.param(p_branch).hasMagicCookie())
       viaBranch = "z9hG4bK";
     viaBranch += frontVia.param(p_branch).getTransactionId().c_str();
-    bindString(mInsert, i, viaBranch);
+    bind(VIA_1, (void *) viaBranch.data(), viaBranch.length());
   }
-  i++;
 
   // via_1_branch
-  i++;
 
   // cseq
   string cseq;
@@ -272,15 +286,12 @@ void HEPDao::save(SipMessage* msg)
   {
     msg->const_header(h_CSeq).encode(cseqStrm);
     cseq = cseqStrm.str();
-    bindString(mInsert, i, cseq);
+    bind(CSEQ, (void *) cseq.data(), cseq.length());
   }
-  i++;
 
   // diversion
-  i++;
 
   // reason
-  i++;
 
   // content_type
   string contentType;
@@ -289,9 +300,8 @@ void HEPDao::save(SipMessage* msg)
     ostringstream ctypeStrm;
     msg->const_header(h_ContentType).encode(ctypeStrm);
     contentType = ctypeStrm.str();
-    bindString(mInsert, i, contentType);
+    bind(CONTENT_TYPE, (void *) contentType.data(), contentType.length());
   }
-  i++;
 
   // authorization
   string authorization;
@@ -300,75 +310,116 @@ void HEPDao::save(SipMessage* msg)
     ostringstream authStrm;
     msg->const_header(h_Authorizations).front().encode(authStrm);
     authorization = authStrm.str();
-    bindString(mInsert, i, authorization);
+    bind(AUTH, (void *) authorization.data(), authorization.length());
   }
   else if (msg->exists(h_ProxyAuthorizations))
   {
     ostringstream authStrm;
     msg->const_header(h_ProxyAuthorizations).front().encode(authStrm);
     authorization = authStrm.str();
-    bindString(mInsert, i, authorization);
+    bind(AUTH, (void *) authorization.data(), authorization.length());
   }
-  i++;
 
   // user_agent
   string userAgent;
   if (msg->exists(h_UserAgent))
   {
     userAgent = msg->const_header(h_UserAgent).value().c_str();
-    bindString(mInsert, i, userAgent);
+    bind(USER_AGENT, (void *) userAgent.data(), userAgent.length());
   }
-  i++;
 
   // source_ip
-  i++;
 
   // source_port
-  i++;
 
   // destination_ip
-  i++;
 
   // destination_port
-  i++;
 
   // originator_ip
-  i++;
 
   // originator_port
-  i++;
 
   // proto
-  i++;
 
   // family
-  i++;
+  // only field in schema allowed to be NULL
+  bind(FAMILY, NULL, 0);
 
   // rtp_stat
-  i++;
 
   // type
-  i++;
 
   // node
-  i++;
+
+  // NOTE: Need to always bind last column or you get SQL unbound cols error
 
   // msg
-  i++;
+  string body = "";
+  bind(MSG, (void *) body.data(), body.length());
 
-  SQLExecute(mInsert);
+  err = SQLExecute(mInsert);
+  checkError(err, mInsert, SQL_HANDLE_STMT);
 }
 
-void HEPDao::bindString(SQLHSTMT hnd, int col, string& val)
-{
-  SQLLEN indicator;
-  SQLBindCol(hnd, col, SQL_C_CHAR, (void *)val.c_str(), val.length(), &indicator);
+void HEPDao::bind(Capture c, void *data, int len) {
+  static const char* blank = "";
+
+  if (mFieldIndex > c) {
+    throw HEPDaoException("Programming error, binding columns out of order");
+  }
+
+  // null fields up to  col
+  while (mFieldIndex < c) {
+
+    // Homer schema uses empty strings instead or null with few exceptions
+    // if you have an exception call explicitly for field
+    //    bind(FIELD_ID, NULL, 0);
+    //
+    void *nil = (mType[c] == SQL_C_CHAR ? (void *)blank : NULL);
+    bind((Capture) mFieldIndex, nil, 0);
+  }
+
+  SQLSMALLINT cType = mType[c];
+  SQLLEN* indicator = sqlLen(cType, data);
+  SQLRETURN err = SQLBindParameter(mInsert, mFieldIndex + 1, SQL_PARAM_INPUT, cType, sqlType(cType), len, 0, data, 0, indicator);
+  checkError(err, mInsert, SQL_HANDLE_STMT);
+  mFieldIndex++;
 }
 
-void HEPDao::bindInt(SQLHSTMT hnd, int col, int val)
-{
-  SQLLEN indicator;
-  SQLBindCol(hnd, col, SQL_C_NUMERIC, &val, sizeof(val), &indicator);
+SQLLEN* HEPDao::sqlLen(SQLSMALLINT cType, void *data) {
+  static SQLLEN ntsLen = SQL_NTS;
+  static SQLLEN nilLen = SQL_NULL_DATA;
+  static SQLLEN intLen = 32;
+  static SQLLEN bigIntLen = 64;
+  static SQLLEN timestampLen = sizeof(TIMESTAMP_STRUCT);
+
+  if (data == NULL) {
+    return &nilLen;
+  }
+  switch (cType) {
+  case SQL_C_SBIGINT:
+    return &bigIntLen;
+  case SQL_C_LONG:
+    return &intLen;
+  case SQL_C_TIMESTAMP:
+    return &timestampLen;
+  default:
+    return &ntsLen;
+  }
+}
+
+SQLSMALLINT HEPDao::sqlType(SQLSMALLINT cType) {
+  switch (cType) {
+  case SQL_C_SBIGINT:
+    return SQL_BIGINT;
+  case SQL_C_LONG:
+    return SQL_INTEGER;
+  case SQL_C_TIMESTAMP:
+    return SQL_TIMESTAMP;
+  default:
+    return SQL_CHAR;
+  }
 }
 
 void HEPDao::checkError(SQLRETURN err, SQLHANDLE handle, SQLSMALLINT type)
@@ -388,7 +439,7 @@ void HEPDao::checkError(SQLRETURN err, SQLHANDLE handle, SQLSMALLINT type)
         }
         else
         {
-            throw HEPDaoException("SQL error");
+          throw HEPDaoException("SQL error ");
         }
     }
 }
