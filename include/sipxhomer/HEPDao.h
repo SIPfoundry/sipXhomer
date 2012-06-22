@@ -16,11 +16,8 @@
 
 #include <sql.h>
 #include <sqlext.h>
-#include <string>
 
-using namespace std;
-
-struct HEPDaoException : exception
+struct HEPDaoException : std::exception
 {
 public:
     HEPDaoException(char const* what) : mWhat(what) {
@@ -34,19 +31,23 @@ public:
     }
 
 private:
-    string mWhat;
+    std::string mWhat;
 };
 
 class HEPDao
 {
 public:
     ~HEPDao();
-    void connect(string& connection);
+    void connect(std::string& connection);
+    void save(resip::SipMessage* msg);
 
 private:
     SQLHENV mEnv;
     SQLHDBC mConn;
+    SQLHSTMT mInsert;
     void checkError(SQLRETURN err, SQLHANDLE handle, SQLSMALLINT type);
+    void bindString(SQLHSTMT hnd, int col, std::string& val);
+    void bindInt(SQLHSTMT hnd, int col, int val);
 };
 
 #endif

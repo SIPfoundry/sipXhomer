@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.io.Writer;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Set;
 
 import org.apache.commons.io.IOUtils;
@@ -33,6 +34,9 @@ import org.sipfoundry.sipxconfig.feature.GlobalFeature;
 import org.sipfoundry.sipxconfig.feature.LocationFeature;
 import org.sipfoundry.sipxconfig.networkqueue.NetworkQueueManager;
 import org.sipfoundry.sipxconfig.setting.BeanWithSettingsDao;
+import org.sipfoundry.sipxconfig.snmp.ProcessDefinition;
+import org.sipfoundry.sipxconfig.snmp.ProcessProvider;
+import org.sipfoundry.sipxconfig.snmp.SnmpManager;
 
 /**
  * backup
@@ -44,12 +48,12 @@ import org.sipfoundry.sipxconfig.setting.BeanWithSettingsDao;
  * separate location homer web (primary only) and global homer feature
  * mysql C++ odbc daemon code. (get code from joegen for parsing)  
  */
-public class HomerImpl implements Homer, ConfigProvider, FeatureProvider {
+public class HomerImpl implements Homer, ConfigProvider, FeatureProvider, ProcessProvider {
     private BeanWithSettingsDao<HomerSettings> m_settingsDao;    
 
     @Override
     public void replicate(ConfigManager manager, ConfigRequest request) throws IOException {
-        if (!request.applies(FEATURE_CAPTURE_SERVER, FEATURE_WEB)) {
+        if (!request.applies(FEATURE_CAPTURE_SERVER, FEATURE_WEB, NetworkQueueManager.FEATURE)) {
             return;
         }
         
@@ -85,7 +89,7 @@ public class HomerImpl implements Homer, ConfigProvider, FeatureProvider {
     
     void writeConfig(Writer w, Address sqa, HomerSettings settings) throws IOException {
         KeyValueConfiguration cfg = KeyValueConfiguration.equalsSeparated(w);
-        cfg.write("sqa-control-port", sqa.getPort());
+        cfg.write("sqa-control-port", sqa.getCanonicalPort());
         cfg.write("sqa-control-address", sqa.getAddress());
     }
     
@@ -140,9 +144,24 @@ public class HomerImpl implements Homer, ConfigProvider, FeatureProvider {
         validator.primaryLocationOnly(FEATURE_WEB);
         
         validator.requiresAtLeastOne(FEATURE_CAPTURE_SERVER, NetworkQueueManager.FEATURE);
+        
+        // just so we don't have to configure capture to connected to remote mysql server
+        validator.requiredOnSameHost(FEATURE_CAPTURE_SERVER, FEATURE_WEB);
     }
 
     @Override
     public void featureChangePostcommit(FeatureManager manager, FeatureChangeRequest request) {
+    }
+
+    @Override
+    public Collection<ProcessDefinition> getProcessDefinitions(SnmpManager manager, Location location) {
+        FeatureManager featureManager = manager.getFeatureManager();
+        if (!featureManager.isFeatureEnabled(FEATURE_CAPTURE_SERVER, location)) {
+            return null;
+        }
+        
+        ProcessDefinition def = new ProcessDefinition("sipxhomer");
+        def.setSipxServiceName("sipxhomer");
+        return Collections.singleton(def);
     }
 }

@@ -17,6 +17,7 @@
 #include "sqa/ServiceOptions.h"
 #include "sqa/sqaclient.h"
 #include "sipxhomer/HEPMessage.h"
+#include <resip/stack/SipMessage.hxx>
 #include "sipxhomer/HEPDao.h"
 #include <boost/thread.hpp>
 

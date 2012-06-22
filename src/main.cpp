@@ -18,6 +18,8 @@
 
 #include "resip/stack/SipMessage.hxx"
 
+using namespace std;
+
 int main(int argc , char** argv)
 {
   ServiceOptions service(argc, argv, "sipxhomer");

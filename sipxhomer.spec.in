@@ -12,9 +12,13 @@ Url: http://www.sipfoundry.org
 BuildRequires: automake
 BuildRequires: sipxsupervisor >= %version
 BuildRequires: sipxconfig >= %version
+BuildRequires: sipxsqa-devel >= %version
+BuildRequires: resiprocate-devel
+BuildRequires: unixODBC-devel
 BuildRequires: mysql-connector-odbc
 
-Requires: sipxcommserverlib >= %version
+Requires: sipxsqa >= %version
+Requires: mysql-connector-odbc
 
 Source: %name-%version.tar.gz
 Prefix: %_prefix
@@ -50,7 +54,8 @@ rm -rf $RPM_BUILD_ROOT
 %defattr(644,root,root,755)
 %{_datadir}/sipxecs/cfinputs/plugin.d/homer.cf
 %{_datadir}/sipxecs/cfinputs/plugin.d/lib/mysql.cf
-%attr(755,root,root)%{_bindir}/sipxhomer
+%attr(755,root,root)%{_sysconfdir}/init.d/sipxhomer
+%attr(755,root,root)%{_libexecdir}/sipXecs/sipxhomer
 
 %files config
 %{_datadir}/java/sipXecs/sipXconfig/plugins/sipxhomer-config.jar

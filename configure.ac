@@ -26,6 +26,7 @@ AC_CONFIG_FILES([
     etc/Makefile
     bin/Makefile
     src/Makefile
+    include/Makefile
     config-plugin/Makefile
 ])
 AC_OUTPUT
