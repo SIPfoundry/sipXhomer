@@ -54,8 +54,10 @@ rm -rf $RPM_BUILD_ROOT
 %defattr(644,root,root,755)
 %{_datadir}/sipxecs/cfinputs/plugin.d/homer.cf
 %{_datadir}/sipxecs/cfinputs/plugin.d/lib/mysql.cf
-%attr(755,root,root)%{_sysconfdir}/init.d/sipxhomer
-%attr(755,root,root)%{_libexecdir}/sipXecs/sipxhomer
+%attr(755,root,root) %{_sysconfdir}/init.d/sipxhomer
+%attr(755,root,root) %{_libexecdir}/sipXecs/sipxhomer
 
 %files config
+%{_sysconfdir}/sipxpbx/sipxhomer/sipxhomer.properties
+%{_sysconfdir}/sipxpbx/sipxhomer/sipxhomer.xml
 %{_datadir}/java/sipXecs/sipXconfig/plugins/sipxhomer-config.jar
