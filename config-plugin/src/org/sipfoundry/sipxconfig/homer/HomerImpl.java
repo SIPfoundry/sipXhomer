@@ -7,7 +7,6 @@
  */
 package org.sipfoundry.sipxconfig.homer;
 
-
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -25,6 +24,7 @@ import org.sipfoundry.sipxconfig.feature.FeatureManager;
 import org.sipfoundry.sipxconfig.feature.FeatureProvider;
 import org.sipfoundry.sipxconfig.feature.GlobalFeature;
 import org.sipfoundry.sipxconfig.feature.LocationFeature;
+import org.sipfoundry.sipxconfig.mysql.MySql;
 import org.sipfoundry.sipxconfig.networkqueue.NetworkQueueManager;
 import org.sipfoundry.sipxconfig.setting.BeanWithSettingsDao;
 import org.sipfoundry.sipxconfig.snmp.ProcessDefinition;
@@ -51,7 +51,10 @@ public class HomerImpl implements Homer, FeatureProvider, ProcessProvider {
 
     @Override
     public Collection<LocationFeature> getAvailableLocationFeatures(FeatureManager featureManager, Location l) {
-        return Arrays.asList(FEATURE_CAPTURE_SERVER, FEATURE_WEB);
+        if (l.isPrimary()) {
+            return Arrays.asList(FEATURE_CAPTURE_SERVER, FEATURE_WEB);
+        }
+        return null;
     }
 
     @Override
@@ -86,6 +89,7 @@ public class HomerImpl implements Homer, FeatureProvider, ProcessProvider {
         
         // just so we don't have to configure capture to connected to remote mysql server
         validator.requiredOnSameHost(FEATURE_CAPTURE_SERVER, FEATURE_WEB);
+        validator.requiredOnSameHost(FEATURE_CAPTURE_SERVER, MySql.FEATURE);
     }
 
     @Override

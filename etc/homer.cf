@@ -17,8 +17,6 @@ bundle agent homer {
         "$(homer_vars.sqldir)/create_sipcapture.sql",
         "$(homer_vars.sqldir)/statistics.sql"
     };
-  classes:
-    "mysql" expression => "homer_web";
 
   methods:
     homer_web|homer_capture::

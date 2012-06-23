@@ -3,7 +3,7 @@
 defined( '_HOMEREXEC' ) or die( 'Restricted access' );
 
 require("class/auth/index.php");
-require("class/auth/none/settings.php");
+require("class/auth/sipx/settings.php");
 
 class HomerAuthentication extends Authentication {
 	                        
