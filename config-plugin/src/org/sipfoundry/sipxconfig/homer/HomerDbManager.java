@@ -16,12 +16,14 @@ package org.sipfoundry.sipxconfig.homer;
 
 import static java.lang.String.format;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 import org.apache.commons.lang.StringUtils;
-import org.sipfoundry.sipxconfig.feature.Feature;
+import org.sipfoundry.sipxconfig.cfgmgt.ConfigManager;
+import org.sipfoundry.sipxconfig.cfgmgt.ConfigRequest;
+import org.sipfoundry.sipxconfig.cfgmgt.PostConfigListener;
 import org.sipfoundry.sipxconfig.feature.FeatureChangeRequest;
 import org.sipfoundry.sipxconfig.feature.FeatureChangeValidator;
 import org.sipfoundry.sipxconfig.feature.FeatureListener;
@@ -32,7 +34,7 @@ import org.springframework.beans.factory.BeanFactoryAware;
 import org.springframework.beans.factory.ListableBeanFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
 
-public class HomerDbManager implements BeanFactoryAware, FeatureListener {
+public class HomerDbManager implements BeanFactoryAware, FeatureListener, PostConfigListener {
     private ListableBeanFactory m_beanFactory;
     private JdbcTemplate m_configJdbcTemplate;
 
@@ -81,15 +83,18 @@ public class HomerDbManager implements BeanFactoryAware, FeatureListener {
 
     @Override
     public void featureChangePostcommit(FeatureManager manager, FeatureChangeRequest request) {
-        Set<Feature> justOn = request.getAllNewlyEnabledFeatures();
-        if (!justOn.contains(ProxyManager.FEATURE) && !justOn.contains(Homer.FEATURE_WEB)) {
+        if (request.getAllNewlyEnabledFeatures().contains(ProxyManager.FEATURE)) {
+            if (manager.isFeatureEnabled(Homer.FEATURE_WEB) || manager.isFeatureEnabled(Homer.FEATURE_CAPTURE_SERVER)) {
+                syncNodes();
+            }
+        }        
+    }
+
+    @Override
+    public void postReplicate(ConfigManager manager, ConfigRequest request) throws IOException {
+        if (!request.applies(Homer.FEATURE_CAPTURE_SERVER, Homer.FEATURE_WEB)) {
             return;
         }
-        
-        if (!manager.isFeatureEnabled(Homer.FEATURE_WEB)) {
-            return;
-        }
-        
         syncNodes();
     }
 }

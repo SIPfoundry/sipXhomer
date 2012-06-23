@@ -22,14 +22,12 @@ import java.util.Set;
 
 import org.apache.commons.io.IOUtils;
 import org.sipfoundry.sipxconfig.address.Address;
-import org.sipfoundry.sipxconfig.address.AddressManager;
 import org.sipfoundry.sipxconfig.cfgmgt.CfengineModuleConfiguration;
 import org.sipfoundry.sipxconfig.cfgmgt.ConfigManager;
 import org.sipfoundry.sipxconfig.cfgmgt.ConfigProvider;
 import org.sipfoundry.sipxconfig.cfgmgt.ConfigRequest;
 import org.sipfoundry.sipxconfig.cfgmgt.KeyValueConfiguration;
 import org.sipfoundry.sipxconfig.commserver.Location;
-import org.sipfoundry.sipxconfig.commserver.LocationsManager;
 import org.sipfoundry.sipxconfig.networkqueue.NetworkQueueManager;
 
 public class HomerConfig implements ConfigProvider {

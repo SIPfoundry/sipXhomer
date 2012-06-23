@@ -2,7 +2,7 @@ Name: @PACKAGE@
 Version: @VERSION@
 Release: @PACKAGE_REVISION@
 
-Summary: sipXecs example project
+Summary: sipXecs/Homer integration
 License: AGPL
 Group: Telcommunications
 Vendor: SIPfoundry
@@ -21,6 +21,7 @@ BuildRequires: mysql-connector-odbc
 
 Requires: sipxsqa >= %version
 Requires: mysql-connector-odbc
+Requires: homer
 Requires: php-pecl-mongo
 
 Source: %name-%version.tar.gz
@@ -28,7 +29,7 @@ Prefix: %_prefix
 BuildRoot: %{_tmppath}/%name-%version-root
 
 %description
-This is just sample text. Change this text to describe your project in more detail.
+sipXecs and Homer integration.
 
 %package config
 Requires: sipxconfig >= %version
