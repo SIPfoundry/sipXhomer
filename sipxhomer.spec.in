@@ -10,8 +10,10 @@ Packager: Douglas Hubler <dhubler@ezuce.com>
 Url: http://www.sipfoundry.org
 
 BuildRequires: automake
+BuildRequires: java-devel >= 1.6
 BuildRequires: sipxsupervisor >= %version
 BuildRequires: sipxconfig >= %version
+BuildRequires: zeromq-devel
 BuildRequires: sipxsqa-devel >= %version
 BuildRequires: resiprocate-devel
 BuildRequires: unixODBC-devel
