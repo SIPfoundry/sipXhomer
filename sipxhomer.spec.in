@@ -19,6 +19,7 @@ BuildRequires: mysql-connector-odbc
 
 Requires: sipxsqa >= %version
 Requires: mysql-connector-odbc
+Requires: php-pecl-mongo
 
 Source: %name-%version.tar.gz
 Prefix: %_prefix
