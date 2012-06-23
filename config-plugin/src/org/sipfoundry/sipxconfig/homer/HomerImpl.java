@@ -41,7 +41,7 @@ import org.sipfoundry.sipxconfig.snmp.SnmpManager;
  * separate location homer web (primary only) and global homer feature
  * mysql C++ odbc daemon code. (get code from joegen for parsing)  
  */
-public class HomerImpl implements Homer, FeatureProvider, ProcessProvider, AddressProvider {
+public class HomerImpl implements Homer, FeatureProvider, ProcessProvider {
     private BeanWithSettingsDao<HomerSettings> m_settingsDao;    
 
     @Override
@@ -102,14 +102,5 @@ public class HomerImpl implements Homer, FeatureProvider, ProcessProvider, Addre
         ProcessDefinition def = new ProcessDefinition("sipxhomer");
         def.setSipxServiceName("sipxhomer");
         return Collections.singleton(def);
-    }
-
-    @Override
-    public Collection<Address> getAvailableAddresses(AddressManager manager, AddressType type, Location requester) {
-        if (!type.equals(HOMER_DB)) {
-            return null;
-        }
-        List<Location> locations = manager.getFeatureManager().getLocationsForEnabledFeature(FEATURE_CAPTURE_SERVER);
-        return Location.toAddresses(HOMER_DB, locations, HOMER_DB.getCanonicalPort());
     }
 }

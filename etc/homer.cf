@@ -53,9 +53,17 @@ bundle edit_line homer_capture_config_contents {
 }
 
 bundle agent homer_web_config {
+  vars:
+    any::
+      "auth_files" slist => {
+        "index.html",
+        "settings.php",
+        "auth.php"
+      };
   classes:
     any::
       "missing_preferences" not => fileexists("$(homer_vars.wwwdir)/preferences.php");
+      "missing_auth" not => filesexist("@(auth_files)");
 
   files:
     homer_web::
@@ -73,18 +81,52 @@ bundle agent homer_web_config {
         perms => mog("644", "apache", "apache"), # TODO: try 400
         edit_defaults => empty,
         edit_line => homer_web_configuration_php;
+        
+      "$(homer_vars.wwwdir)/class/auth/sipx"
+        comment => "Homer/sipXecs authentication $(this.promisier)",
+        link_from => ln_s("$(sipx.wwwdir)/webhomer-auth-sipx");
+        
+      "$(homer_vars.wwwdir)/class/auth/sipx/$(auth_files)"
+        comment => "Homer/sipXecs authentication $(this.promisier)",
+        create => "false",
+        perms => mog("600", "apache", "apache");
 
     homer_web.missing_preferences::
       "$(homer_vars.wwwdir)/preferences.php"
         comment => "Homer preferences $(this.promiser)",
-        perms => mog("644", "apache", "apache"),
         copy_from => local_cp("$(homer_vars.wwwdir)/preferences_example.php");
+        
+    homer_web::
+      "$(homer_vars.wwwdir)/preferences.php"
+        comment => "Homer configuration  $(this.promiser)",
+        create => "false",
+        perms => mog("644", "apache", "apache"), # TODO: try 400
+        edit_line => homer_web_preferences_php;        
+}
+
+# Editing isolated values can be replaced w/generating preferences from template once 
+# more settings are captured in config-plugin/sipxhomer.xml
+bundle edit_line homer_web_preferences_php {
+  vars:
+    "v[AUTHENTICATION]" string => "'sipx'";
+    "k" slist => getindices("v");
+    
+  insert_lines:
+	"define('$(k)',$(v[$(k)]));"
+		location => after_php_header;
+
+  delete_lines:
+    "^\s*define\(\s*'$(k)'\s*,.*$";    	    
+}
+
+body location after_php_header {
+  select_line_matching => "<\?php\s*";
+  before_after => "after";
 }
 
 bundle edit_line homer_web_configuration_php {
   insert_lines:
 "<?php
-
 define('HOST', \"localhost\");
 define('PORT', 3306);
 define('USER', \"root\");

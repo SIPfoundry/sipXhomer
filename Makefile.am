@@ -6,4 +6,5 @@ SUBDIRS = \
   src \
   include \
   bin \
-  config-plugin
+  config-plugin \
+  webhomer-auth

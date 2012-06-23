@@ -29,5 +29,6 @@ AC_CONFIG_FILES([
     src/Makefile
     include/Makefile
     config-plugin/Makefile
+    webhomer-auth/Makefile
 ])
 AC_OUTPUT
