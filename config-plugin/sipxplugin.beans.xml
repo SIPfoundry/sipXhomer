@@ -11,7 +11,7 @@
     <property name="proxyInterfaces" value="org.sipfoundry.sipxconfig.homer.Homer"/>
   </bean>
 
-  <bean id="alarmMessages" class="org.springframework.context.support.ResourceBundleMessageSource">
+  <bean id="homerStrings" class="org.springframework.context.support.ResourceBundleMessageSource">
     <property name="basename">
       <value>sipxhomer-plugin</value>
     </property>
@@ -29,12 +29,49 @@
     </property>
   </bean>
 
+  <bean id="homerSettings" class="org.sipfoundry.sipxconfig.homer.HomerSettings" parent="settingsBean">
+  </bean>
+  
   <bean id="homerConfig" class="org.sipfoundry.sipxconfig.homer.HomerConfig">
     <property name="homer" ref="homer"/>
-    <property name="addressManager" ref="addressManager"/>
+  </bean>
+  
+  <bean id="homerDataSource" class="com.mchange.v2.c3p0.ComboPooledDataSource" destroy-method="close" scope="prototype">
+    <property name="driverClass">
+      <value>com.mysql.jdbc.Driver</value>
+    </property>
+    <property name="jdbcUrl">
+      <value>jdbc:mysql://localhost:3306/homer_users?user=root</value>
+    </property>
+    <property name="user">
+      <value>root</value>
+    </property>
+    <property name="acquireIncrement">
+      <value>3</value>
+    </property>
+    <property name="checkoutTimeout">
+      <value>300000</value>
+    </property>
+    <property name="initialPoolSize">
+      <value>1</value>
+    </property>
+    <property name="maxIdleTime">
+      <value>900000</value>
+    </property>
+    <property name="maxPoolSize">
+      <value>8</value>
+    </property>
+    <property name="minPoolSize">
+      <value>1</value>
+    </property>
+  </bean>  
+
+  <bean id="homerDb" class="org.springframework.jdbc.core.JdbcTemplate" scope="prototype">
+    <property name="dataSource" ref="homerDataSource" />
   </bean>
 
-  <bean id="homerSettings" class="org.sipfoundry.sipxconfig.homer.HomerSettings" parent="settingsBean">
+  <bean id="homerDbManager" class="org.sipfoundry.sipxconfig.homer.HomerDbManager">
+    <property name="configJdbcTemplate" ref="configJdbcTemplate"/>
   </bean>
   
 </beans>

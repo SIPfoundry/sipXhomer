@@ -22,9 +22,14 @@ homer_PKGS = \
 	sipxconfig-neoconf \
 	sipxconfig-web \
 	commons-io \
+	commons-lang \
 	tapestry-annotations \
 	tapestry-framework \
+	org.springframework.core \
+	org.springframework.transaction \
+	org.springframework.jdbc \
 	org.springframework.context \
+	org.springframework.beans \
 	hivemind
 
 homer_DEPS = \

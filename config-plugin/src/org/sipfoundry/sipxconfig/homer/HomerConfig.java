@@ -30,18 +30,11 @@ import org.sipfoundry.sipxconfig.cfgmgt.ConfigRequest;
 import org.sipfoundry.sipxconfig.cfgmgt.KeyValueConfiguration;
 import org.sipfoundry.sipxconfig.commserver.Location;
 import org.sipfoundry.sipxconfig.commserver.LocationsManager;
-import org.sipfoundry.sipxconfig.feature.FeatureChangeRequest;
-import org.sipfoundry.sipxconfig.feature.FeatureChangeValidator;
-import org.sipfoundry.sipxconfig.feature.FeatureListener;
-import org.sipfoundry.sipxconfig.feature.FeatureManager;
 import org.sipfoundry.sipxconfig.networkqueue.NetworkQueueManager;
-import org.sipfoundry.sipxconfig.proxy.ProxyManager;
 
-public class HomerConfig implements ConfigProvider, FeatureListener {
+public class HomerConfig implements ConfigProvider {
     private Homer m_homer;
-    private AddressManager m_addressManager;
-    private LocationsManager m_locationsManager;
-
+    
     @Override
     public void replicate(ConfigManager manager, ConfigRequest request) throws IOException {
         if (!request.applies(Homer.FEATURE_CAPTURE_SERVER, Homer.FEATURE_WEB, NetworkQueueManager.FEATURE)) {
@@ -98,27 +91,5 @@ public class HomerConfig implements ConfigProvider, FeatureListener {
 
     public void setHomer(Homer homer) {
         m_homer = homer;
-    }
-
-    @Override
-    public void featureChangePrecommit(FeatureManager manager, FeatureChangeValidator validator) {
-    }
-
-    @Override
-    public void featureChangePostcommit(FeatureManager manager, FeatureChangeRequest request) {
-        if (!request.getAllNewlyEnabledFeatures().contains(ProxyManager.FEATURE)) {
-            return;
-        }
-        
-        HomerSettings settings = m_homer.getSettings();
-        Location primary = m_locationsManager.getPrimaryLocation();
-        Address db = m_addressManager.getSingleAddress(Homer.HOMER_DB, primary);
-        
-        
-        
-    }
-
-    public void setAddressManager(AddressManager addressManager) {
-        m_addressManager = addressManager;
     }
 }
