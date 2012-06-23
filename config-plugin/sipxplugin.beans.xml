@@ -29,6 +29,11 @@
     </property>
   </bean>
 
+  <bean id="homerConfig" class="org.sipfoundry.sipxconfig.homer.HomerConfig">
+    <property name="homer" ref="homer"/>
+    <property name="addressManager" ref="addressManager"/>
+  </bean>
+
   <bean id="homerSettings" class="org.sipfoundry.sipxconfig.homer.HomerSettings" parent="settingsBean">
   </bean>
   
