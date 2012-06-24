@@ -14,16 +14,24 @@
  */
 package org.sipfoundry.sipxconfig.homer;
 
+
 import static java.lang.String.format;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 
 import org.apache.commons.lang.StringUtils;
+import org.sipfoundry.sipxconfig.backup.ArchiveDefinition;
+import org.sipfoundry.sipxconfig.backup.ArchiveProvider;
+import org.sipfoundry.sipxconfig.backup.BackupManager;
+import org.sipfoundry.sipxconfig.backup.BackupSettings;
 import org.sipfoundry.sipxconfig.cfgmgt.ConfigManager;
 import org.sipfoundry.sipxconfig.cfgmgt.ConfigRequest;
 import org.sipfoundry.sipxconfig.cfgmgt.PostConfigListener;
+import org.sipfoundry.sipxconfig.commserver.Location;
 import org.sipfoundry.sipxconfig.feature.FeatureChangeRequest;
 import org.sipfoundry.sipxconfig.feature.FeatureChangeValidator;
 import org.sipfoundry.sipxconfig.feature.FeatureListener;
@@ -34,7 +42,7 @@ import org.springframework.beans.factory.BeanFactoryAware;
 import org.springframework.beans.factory.ListableBeanFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
 
-public class HomerDbManager implements BeanFactoryAware, FeatureListener, PostConfigListener {
+public class HomerDbManager implements BeanFactoryAware, FeatureListener, PostConfigListener, ArchiveProvider {
     private ListableBeanFactory m_beanFactory;
     private JdbcTemplate m_configJdbcTemplate;
 
@@ -96,5 +104,17 @@ public class HomerDbManager implements BeanFactoryAware, FeatureListener, PostCo
             return;
         }
         syncNodes();
+    }
+
+    @Override
+    public Collection<ArchiveDefinition> getArchiveDefinitions(BackupManager manager, Location location,
+            BackupSettings manualSettings) {
+        FeatureManager fm = manager.getFeatureManager();
+        if (fm.isFeatureEnabled(Homer.FEATURE_CAPTURE_SERVER, location) || fm.isFeatureEnabled(Homer.FEATURE_WEB, location)) {
+            return Collections.singleton(new ArchiveDefinition(Homer.ARCHIVE,
+                    "$(sipx.SIPX_SERVICEDIR)/sipxhomer backup %s",
+                    "$(sipx.SIPX_SERVICEDIR)/sipxhomer restore %s"));
+        }
+        return null;
     }
 }

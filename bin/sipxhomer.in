@@ -48,6 +48,30 @@ restart() {
   start
 }
 
+backup() {
+  for db in homer_db homer_users; do 
+    mysqldump -u root ${db} > @SIPX_TMPDIR@/${db}.sql
+  done
+  tar -C @SIPX_TMPDIR@ -cvzf $1 homer_db.sql homer_users.sql
+  rm @SIPX_TMPDIR@/homer_db.sql @SIPX_TMPDIR@/homer_users.sql
+}
+
+restore() {
+  test -f ${pidfile} && running=yes
+  if [ "$running" = "yes" ] ; then
+    stop
+  fi
+  
+  for db in homer_db homer_users; do 
+    mysql -u root -e "drop database if exists ${db}; create database ${db};"
+    tar -xzf $1 -O ${db}.sql | mysql -u root ${db}
+  done
+
+  if [ "$running" = "yes" ] ; then
+    start
+  fi  
+}
+
 case "$1" in
   nofork)
     NoFork=1
@@ -56,6 +80,7 @@ case "$1" in
   start)
     start
     ;;
+      
   stop)
     stop
     ;;
@@ -72,8 +97,16 @@ case "$1" in
   configtest)
     configtest
     ;;
+  backup)
+    shift
+    backup $1
+    ;;
+  restore)
+    shift
+    restore $1
+    ;;    
   *)
-    echo "Usage: $0 {start|stop|status|restart|reload|force-reload|condrestart|nofork}"
+    echo "Usage: $0 {start|stop|status|restart|reload|force-reload|condrestart|nofork|backup filename|restore filename}"
     Status=1
 esac
 

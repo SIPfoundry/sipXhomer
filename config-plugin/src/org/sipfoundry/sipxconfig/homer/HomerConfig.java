@@ -83,7 +83,7 @@ public class HomerConfig implements ConfigProvider {
         // these settings are really only meant for servers and contain passwords so
         // no need copying them w/o reason.
         if (serverOn || webOn) {
-            cfg.writeSettings(Homer.FEATURE_WEB.getId() + '.', settings.getSettings());
+            cfg.writeSettings(Homer.FEATURE_WEB.getId() + '_', settings.getSettings().getSetting("homer_web"));
         }
     }
 

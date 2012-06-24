@@ -106,7 +106,7 @@ bundle agent homer_web_config {
 # more settings are captured in config-plugin/sipxhomer.xml
 bundle edit_line homer_web_preferences_php {
   vars:
-    "v[AUTHENTICATION]" string => "'sipx'";
+    "v[AUTHENTICATION]" string => "'$(sipx.homer_web_auth)'";
     "k" slist => getindices("v");
     
   insert_lines:

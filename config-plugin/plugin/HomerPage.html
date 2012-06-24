@@ -1,5 +1,10 @@
 <div jwcid="@common/Border" useDojo="ognl:true" borderTitle="ognl:borderTitle">
-   <span jwcid="@common/ErrorMsg"/>
+  <span jwcid="@common/ErrorMsg"/>
+  <ul class="component-links">
+    <li>
+      <a href="/webhomer">SIP Capture Web Interface</a>
+    </li>
+  </ul>
   <form jwcid="form@Form" delegate="bean:validator">
     <fieldset jwcid="@setting/SettingsFieldset"
         settings="ognl:settings.settings" />
