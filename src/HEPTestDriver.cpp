@@ -233,6 +233,8 @@ DEFINE_TEST(TestDriver, TestHEPParser)
         case UPDATE:
           cseqMethod = "UPDATE";
           break;
+        default:
+          break;
       }
     }
 

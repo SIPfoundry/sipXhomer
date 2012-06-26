@@ -25,8 +25,6 @@ int main(int argc , char** argv)
   ServiceOptions service(argc, argv, "sipxhomer");
   service.addDaemonOptions();
 
-  service.addOptionString("sqa-control-port", ": Port where to send control commands.");
-  service.addOptionString("sqa-control-address", ": Address where to send control commands.");
   service.addOptionFlag("test-driver", ": Run internal test for proper HEP v3 operations.");
 
   if (!service.parseOptions())

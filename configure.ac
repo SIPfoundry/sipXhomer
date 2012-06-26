@@ -13,6 +13,7 @@ AC_PROG_CC
 AX_COMPILER_VENDOR
 SFAC_INIT_FLAGS
 SFAC_LIB_PORT
+SFAC_LIB_COMMSERVER
 CHECK_ODBC
 
 # java projects - typical macros
@@ -28,7 +29,8 @@ AC_CONFIG_FILES([
     bin/Makefile
     src/Makefile
     include/Makefile
-    config-plugin/Makefile
     webhomer-auth/Makefile
+    config-plugin/Makefile
+    proxy-plugin/Makefile
 ])
 AC_OUTPUT

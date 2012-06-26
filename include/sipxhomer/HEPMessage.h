@@ -284,8 +284,6 @@ inline bool HEPMessage::parse(const std::string& message)
         
         data.push_back(*iter);
         
-        std::size_t len = *(reinterpret_cast<std::size_t*>(chunkLength));
-        std::size_t size = data.size();  
         if (*(reinterpret_cast<std::size_t*>(chunkLength)) == data.size())
         {
           parserState = VendorIdParse;
@@ -300,8 +298,11 @@ inline bool HEPMessage::parse(const std::string& message)
           iter++;
         }
         break;
+      case MessageEnd:
+          break;
     }
   }
+  return true;
 }
 
 inline bool HEPMessage::setChunk(unsigned short vendorId, unsigned short typeId, const std::string& data)
@@ -479,6 +480,8 @@ inline bool HEPMessage::encode(std::ostream& strm)
   dataSize = _data.size();
   strm.write((const char*)&dataSize, sizeof(::uint16_t));
   strm.write(_data.c_str(), _data.size());
+
+  return true;
 }
 
 inline const ::uint8_t& HEPMessage::getIpProtoFamily() const

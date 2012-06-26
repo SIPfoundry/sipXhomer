@@ -20,7 +20,10 @@ sipxhomer_LDADD = \
 	-lcrypto \
 	-lares \
 	-lpthread \
-	@ODBC_LDFLAGS@
+	-lmongoclient \
+	@ODBC_LDFLAGS@ \
+	@SIPXCOMMSERVER_LIBS@
+
 
 sipxhomer_LDFLAGS = \
     -shared \

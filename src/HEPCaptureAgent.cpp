@@ -11,11 +11,13 @@
 // FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
 // details.
 
+#include <net/NetBase64Codec.h>
 #include "os/OsLogger.h"
 #include "sqa/ServiceOptions.h"
 #include "sqa/sqaclient.h"
 #include <boost/date_time.hpp>
 #include "sipxhomer/HEPCaptureAgent.h"
+
 
 using namespace resip;
 
@@ -49,18 +51,21 @@ void HEPCaptureAgent::internalRun()
   std::string sqaAddress;
   std::string sqaPort;
   
-  _options.getOption("sqa-control-address", sqaAddress);
-  _options.getOption("sqa-control-port", sqaPort);
-  
-  _pWatcher = new SQAWatcher("HEPCaptureAgent", sqaAddress.c_str(), sqaPort.c_str(), "CAP", 1);
+ 
+  _pWatcher = new SQAWatcher("HEPCaptureAgent", "CAP", 1);
   
   while(_isRunning)
   {
     SQAEvent* pEvent = _pWatcher->watch();
     if (pEvent)
     {
-      pEvent->data;
-      std::string data = pEvent->data;
+      std::string buff = pEvent->data;
+
+      char decoded[8092];
+      int decodedSize;
+      NetBase64Codec::decode(buff.size(), buff.data(), decodedSize, decoded);
+      std::string data(decoded, decodedSize);
+
       HEPMessage message;
       if (message.parse(data))
       {
