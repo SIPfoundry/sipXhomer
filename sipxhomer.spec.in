@@ -15,6 +15,7 @@ BuildRequires: sipxsupervisor >= %version
 BuildRequires: sipxconfig >= %version
 BuildRequires: zeromq-devel
 BuildRequires: sipxsqa-devel >= %version
+BuildRequires: sipxproxy-devel >= %version
 BuildRequires: resiprocate-devel
 BuildRequires: unixODBC-devel
 BuildRequires: mysql-connector-odbc
@@ -33,12 +34,21 @@ sipXecs and Homer integration.
 
 %package config
 Requires: sipxconfig >= %version
-Group: Development/Libraries
+Group: Telcommunications
 Vendor: SIPfoundry
 Summary: Administration UI for Homer integration
 
 %description config
 Administration UI for Homer integration
+
+%package proxyplugin
+Requires: sipxproxy >= %version
+Group: Telcommunications
+Vendor: SIPfoundry
+Summary: sipXproxy to send SIP messages to SQA network queue.
+
+%description proxyplugin
+sipXproxy to send SIP messages to SQA network queue.
 
 %prep
 %setup -q
@@ -65,3 +75,6 @@ rm -rf $RPM_BUILD_ROOT
 %{_sysconfdir}/sipxpbx/sipxhomer/sipxhomer.properties
 %{_sysconfdir}/sipxpbx/sipxhomer/sipxhomer.xml
 %{_datadir}/java/sipXecs/sipXconfig/plugins/sipxhomer-config.jar
+
+%files proxyplugin
+%{_libdir}/transactionplugins/libsipXhomerProxyPlugin.so*

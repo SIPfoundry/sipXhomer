@@ -1,7 +1,5 @@
-
 include $(top_srcdir)/config/project.am
 include $(top_srcdir)/config/utility.am
-## Process this file with automake to produce Makefile.in
 
 sipXhomerProxyPlugin_COMMON_CXX_FLAGS = \
 	-I$(top_builddir)/config \
@@ -24,25 +22,21 @@ sipXhomerProxyPlugin_COMMON_LD_FLAGS = \
 sipXhomerProxyPlugin_LDADD = \
 	-lsqaclient
 
-nobase_lib_LTLIBRARIES = \
-    transactionplugins/libsipXhomerProxyPlugin.la
+transactionpluginsdir = $(SIPX_LIBDIR)/transactionplugins
+transactionplugins_LTLIBRARIES = \
+    libsipXhomerProxyPlugin.la
 
-transactionplugins_libsipXhomerProxyPlugin_la_SOURCES = \
+libsipXhomerProxyPlugin_la_SOURCES = \
 	ProxyPlugin.h \
 	ProxyPlugin.cpp
 
-transactionplugins_libsipXhomerProxyPlugin_la_CXXFLAGS = \
+libsipXhomerProxyPlugin_la_CXXFLAGS = \
     $(sipXhomerProxyPlugin_COMMON_CXX_FLAGS) \
     -DSIPX_CONFDIR=\"@SIPX_CONFDIR@\"
 
-transactionplugins_libsipXhomerProxyPlugin_la_LDFLAGS = \
+libsipXhomerProxyPlugin_la_LDFLAGS = \
     $(sipXhomerProxyPlugin_COMMON_LD_FLAGS)
 
 
-transactionplugins_libsipXhomerProxyPlugin_la_LIBADD = \
+libsipXhomerProxyPlugin_la_LIBADD = \
 	@SIPXCOMMSERVER_LIBS@
-	
-
-
-
-
