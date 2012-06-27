@@ -50,6 +50,14 @@ Summary: sipXproxy to send SIP messages to SQA network queue.
 %description proxyplugin
 sipXproxy to send SIP messages to SQA network queue.
 
+%package devel
+Group: Telcommunications
+Vendor: SIPfoundry
+Summary: devel for sipXhomer
+
+%description devel
+devel for sipXhomer
+
 %prep
 %setup -q
 
@@ -78,3 +86,6 @@ rm -rf $RPM_BUILD_ROOT
 
 %files proxyplugin
 %{_libdir}/transactionplugins/libsipXhomerProxyPlugin.so*
+
+%files devel
+%{_libdir}/transactionplugins/libsipXhomerProxyPlugin.la

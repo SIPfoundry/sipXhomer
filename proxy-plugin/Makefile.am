@@ -1,4 +1,3 @@
-include $(top_srcdir)/config/project.am
 include $(top_srcdir)/config/utility.am
 
 ## Libtool version info - update only immediately before a release
@@ -31,4 +30,6 @@ libsipXhomerProxyPlugin_la_LDFLAGS = \
 libsipXhomerProxyPlugin_la_LIBADD = \
 	-lsqaclient \
 	-lzmq \
+	-lmongoclient \
+	-lboost_system-mt \
 	@SIPXCOMMSERVER_LIBS@

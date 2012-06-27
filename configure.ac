@@ -15,8 +15,6 @@ SFAC_INIT_FLAGS
 SFAC_LIB_PORT
 SFAC_LIB_COMMSERVER
 CHECK_ODBC
-
-# java projects - typical macros
 m4_include([config/java.m4])
 m4_include([config/java2.m4])
 AC_PROG_JAVA_CC([javac])
@@ -30,7 +28,7 @@ AC_CONFIG_FILES([
     src/Makefile
     include/Makefile
     webhomer-auth/Makefile
-    config-plugin/Makefile
     proxy-plugin/Makefile
+    config-plugin/Makefile
 ])
 AC_OUTPUT
