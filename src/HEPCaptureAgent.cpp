@@ -59,12 +59,7 @@ void HEPCaptureAgent::internalRun()
     SQAEvent* pEvent = _pWatcher->watch();
     if (pEvent)
     {
-      std::string buff = pEvent->data;
-
-      char decoded[8092];
-      int decodedSize;
-      NetBase64Codec::decode(buff.size(), buff.data(), decodedSize, decoded);
-      std::string data(decoded, decodedSize);
+      std::string data = std::string(pEvent->data, pEvent->data_len);
 
       HEPMessage message;
       if (message.parse(data))

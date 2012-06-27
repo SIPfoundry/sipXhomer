@@ -59,9 +59,7 @@ void HomerProxyPlugin::handleIncoming(SipMessage& message, const char* address, 
 
   std::ostringstream buff;
   hep.encode(buff);
-  UtlString hepMsq;
-  NetBase64Codec::encode(buff.str().size(), buff.str().data(), hepMsq);
-  _sqa.publish("CAP", buff.str().c_str());
+  _sqa.publish("CAP", buff.str().data(), buff.str().size());
 }
 
 void HomerProxyPlugin::handleOutgoing(SipMessage& message, const char* address, int port)
@@ -85,9 +83,7 @@ void HomerProxyPlugin::handleOutgoing(SipMessage& message, const char* address, 
 
   std::ostringstream buff;
   hep.encode(buff);
-  UtlString hepMsq;
-  NetBase64Codec::encode(buff.str().size(), buff.str().data(), hepMsq);
-  _sqa.publish("CAP", buff.str().c_str());
+  _sqa.publish("CAP", buff.str().data(), buff.str().size());
 }
 
 
