@@ -32,6 +32,7 @@ import org.sipfoundry.sipxconfig.cfgmgt.ConfigManager;
 import org.sipfoundry.sipxconfig.cfgmgt.ConfigRequest;
 import org.sipfoundry.sipxconfig.cfgmgt.PostConfigListener;
 import org.sipfoundry.sipxconfig.commserver.Location;
+import org.sipfoundry.sipxconfig.commserver.LocationsManager;
 import org.sipfoundry.sipxconfig.feature.FeatureChangeRequest;
 import org.sipfoundry.sipxconfig.feature.FeatureChangeValidator;
 import org.sipfoundry.sipxconfig.feature.FeatureListener;
@@ -100,7 +101,7 @@ public class HomerDbManager implements BeanFactoryAware, FeatureListener, PostCo
 
     @Override
     public void postReplicate(ConfigManager manager, ConfigRequest request) throws IOException {
-        if (!request.applies(Homer.FEATURE_CAPTURE_SERVER, Homer.FEATURE_WEB)) {
+        if (!request.applies(Homer.FEATURE_CAPTURE_SERVER, Homer.FEATURE_WEB, ProxyManager.FEATURE, LocationsManager.FEATURE)) {
             return;
         }
         syncNodes();
