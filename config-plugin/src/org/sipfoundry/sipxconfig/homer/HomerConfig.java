@@ -61,7 +61,7 @@ public class HomerConfig implements ConfigProvider {
                 Writer capCfg = new FileWriter(new File(dir, "sipxhomer.ini.part"));
                 Address sqa = manager.getAddressManager().getSingleAddress(NetworkQueueManager.CONTROL_ADDRESS);
                 try {
-                    writeConfig(capCfg, sqa, settings);
+                    writeCaptureServerConfig(capCfg, sqa, settings);
                 } finally {
                     IOUtils.closeQuietly(capCfg);
                 }
@@ -69,10 +69,11 @@ public class HomerConfig implements ConfigProvider {
         }
     }
     
-    void writeConfig(Writer w, Address sqa, HomerSettings settings) throws IOException {
+    void writeCaptureServerConfig(Writer w, Address sqa, HomerSettings settings) throws IOException {
         KeyValueConfiguration cfg = KeyValueConfiguration.equalsSeparated(w);
         cfg.write("sqa-control-port", sqa.getCanonicalPort());
         cfg.write("sqa-control-address", sqa.getAddress());
+        cfg.writeSettings(settings.getSettings().getSetting("homer_capture"));
     }
     
     void writeCfdat(Writer w, HomerSettings settings, boolean clientOn, boolean serverOn, boolean webOn) throws IOException {
