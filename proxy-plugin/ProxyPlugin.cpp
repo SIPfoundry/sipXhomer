@@ -4,6 +4,9 @@
 #include <sys/time.h>
 #include <sstream>
 #include <net/NetBase64Codec.h>
+#include "sqa/json/reader.h"
+#include "sqa/json/writer.h"
+#include "sqa/json/elements.h"
 
 /// Factory used by PluginHooks to dynamically link the plugin instance
 extern "C" SipBidirectionalProcessorPlugin* getTransactionPlugin(const UtlString& pluginName)
@@ -45,6 +48,8 @@ void HomerProxyPlugin::handleIncoming(SipMessage& message, const char* address, 
 
   std::string msg;
   msg = message.getBytes();
+
+#if 0
   HEPMessage hep;
   hep.setIpProtoFamily(HEPMessage::IpV4);
   hep.setIpProtoId(HEPMessage::TCP);
@@ -59,7 +64,36 @@ void HomerProxyPlugin::handleIncoming(SipMessage& message, const char* address, 
 
   std::ostringstream buff;
   hep.encode(buff);
-  _sqa.publish("CAP", buff.str().data(), buff.str().size());
+
+
+  UtlString hepMsq;
+  NetBase64Codec::encode(buff.str().size(), buff.str().data(), hepMsq);
+  _sqa.publish("CAP", hepMsq.data());
+#else
+
+  json::Object object;
+  object["IpProtoFamily"] = json::Number(HEPMessage::IpV4);
+  object["IpProtoId"] = json::Number(HEPMessage::TCP);
+  object["Ip4SrcAddress"] = json::String(address);
+  object["Ip4DestAddress"] = json::String(_localHost.c_str());
+  object["SrcPort"] = json::Number(port);
+  object["DestPort"] = json::Number(_localPort);
+  object["TimeStamp"] = json::Number(now.tv_sec);
+  object["ProtocolType"] = json::Number(HEPMessage::SIP);
+  object["Data"] = json::String(msg.c_str());
+
+  try
+  {
+    std::ostringstream strm;
+    json::Writer::Write(object, strm);
+    _sqa.publish("CAP", strm.str().c_str());
+  }
+  catch(std::exception& error)
+  {
+  }
+
+#endif
+
 }
 
 void HomerProxyPlugin::handleOutgoing(SipMessage& message, const char* address, int port)
@@ -69,6 +103,8 @@ void HomerProxyPlugin::handleOutgoing(SipMessage& message, const char* address, 
 
   std::string msg;
   msg = message.getBytes();
+
+#if 0
   HEPMessage hep;
   hep.setIpProtoFamily(HEPMessage::IpV4);
   hep.setIpProtoId(HEPMessage::TCP);
@@ -83,7 +119,32 @@ void HomerProxyPlugin::handleOutgoing(SipMessage& message, const char* address, 
 
   std::ostringstream buff;
   hep.encode(buff);
-  _sqa.publish("CAP", buff.str().data(), buff.str().size());
+
+  UtlString hepMsq;
+  NetBase64Codec::encode(buff.str().size(), buff.str().data(), hepMsq);
+  _sqa.publish("CAP", hepMsq.data());
+#else
+  json::Object object;
+  object["IpProtoFamily"] = json::Number(HEPMessage::IpV4);
+  object["IpProtoId"] = json::Number(HEPMessage::TCP);
+  object["Ip4SrcAddress"] = json::String(_localHost.c_str());
+  object["Ip4DestAddress"] = json::String(address);
+  object["SrcPort"] = json::Number(_localPort);
+  object["DestPort"] = json::Number(port);
+  object["TimeStamp"] = json::Number(now.tv_sec);
+  object["ProtocolType"] = json::Number(HEPMessage::SIP);
+  object["Data"] = json::String(msg.c_str());
+
+  try
+  {
+    std::ostringstream strm;
+    json::Writer::Write(object, strm);
+    _sqa.publish("CAP", strm.str().c_str());
+  }
+  catch(std::exception& error)
+  {
+  }
+#endif
 }
 
 
