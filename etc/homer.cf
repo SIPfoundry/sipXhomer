@@ -138,7 +138,7 @@ define('PW', \"\");
 define('DB', \"homer_users\");
 define('HOMER_HOST', \"localhost\");
 define('HOMER_PORT', 3306);
-define('HOMER_USER', \"\");
+define('HOMER_USER', \"root\");
 define('HOMER_PW', \"\");
 define('HOMER_DB', \"homer_db\");
 define('HOMER_TABLE', \"sip_capture\");
