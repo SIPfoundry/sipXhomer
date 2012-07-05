@@ -4,6 +4,7 @@
 
   <bean id="homerHook" class="org.sipfoundry.sipxconfig.site.SimplePluginHook">
     <property name="hookId" value="HomerHook"/>
+    <property name="featureId" value="homer_web"/>
   </bean>
 
   <bean id="homer" class="org.springframework.aop.framework.ProxyFactoryBean" parent="abstractDao">
