@@ -85,6 +85,13 @@ public class HomerConfig implements ConfigProvider {
         // no need copying them w/o reason.
         if (serverOn || webOn) {
             cfg.writeSettings(Homer.FEATURE_WEB.getId() + '_', settings.getSettings().getSetting("homer_web"));
+            String authText;
+            if (settings.isSuperadminAuth()) {
+                authText = "Please login with your superadmin credentials";
+            } else {                
+                authText = "Please login with your credentials";
+            }
+            cfg.write(Homer.FEATURE_WEB.getId() + "_auth_text", authText); 
         }
     }
 

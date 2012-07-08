@@ -58,6 +58,7 @@ bundle agent homer_web_config {
         "settings.php",
         "auth.php"
       };
+
   classes:
     any::
       "missing_preferences" not => fileexists("$(homer_vars.wwwdir)/preferences.php");
@@ -107,6 +108,7 @@ bundle agent homer_web_config {
 bundle edit_line homer_web_preferences_php {
   vars:
     "v[AUTHENTICATION]" string => "'$(sipx.homer_web_auth)'";
+    "v[AUTHENTICATION_TEXT]" string => "'$(sipx.homer_web_auth_text)'";
 
     # based on following conversation w/lorenzo
     #  "this will enable auto-selection of callflow host or host:port display if there is 
@@ -116,11 +118,11 @@ bundle edit_line homer_web_preferences_php {
     "k" slist => getindices("v");
     
   insert_lines:
-	"define('$(k)',$(v[$(k)]));"
-		location => after_php_header;
+    "define('$(k)',$(v[$(k)]));"
+	   location => after_php_header;
 
   delete_lines:
-    "^\s*define\(\s*'$(k)'\s*,.*$";    	    
+    "^\s*define\(\s*'$(k)'\s*,.*$";
 }
 
 body location after_php_header {

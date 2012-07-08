@@ -31,4 +31,8 @@ public class HomerSettings extends PersistableSettings implements DeployConfigOn
     public Collection<Feature> getAffectedFeaturesOnChange() {
         return Arrays.asList((Feature) Homer.FEATURE_CAPTURE_SERVER, Homer.FEATURE_WEB);
     }
+    
+    public boolean isSuperadminAuth() {
+        return "sipx".equals(getSettingValue("homer_web/auth"));
+    }
 }
