@@ -28,7 +28,6 @@ public:
   ~HEPCaptureAgent();
   void run();
   void stop();
-  void onReceivedEvent(HEPMessage& event);
   ServiceOptions& options();
 private:
   void internalRun();

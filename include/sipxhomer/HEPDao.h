@@ -17,6 +17,7 @@
 #include <sql.h>
 #include <sqlext.h>
 #include <resip/stack/SipMessage.hxx>
+#include "sqa/sqaclient.h"
 
 struct HEPDaoException : std::exception
 {
@@ -41,17 +42,16 @@ public:
     HEPDao();
     ~HEPDao();
     void connect(std::string& connection);
-    void save(resip::SipMessage* msg);
-
+    void save(json::Object& object);
 private:
     enum Capture {
       DATE,
       MICRO_TS,
       METHOD,
       REPLY_REASON,
-      RESPONSE_URI,
+      REQUESTURI,
 
-      RESPONSE_USER,
+      REQUESTURI_USER,
       FROM_USER,
       FROM_TAG,
       TO_USER,

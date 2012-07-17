@@ -15,6 +15,7 @@
 #include <boost/throw_exception.hpp>
 #include <resip/stack/SipMessage.hxx>
 #include "sipxhomer/HEPDao.h"
+#include "sipxhomer/HEPMessage.h"
 
 using namespace std;
 using namespace resip;
@@ -80,29 +81,48 @@ void HEPDao::connect(string& connection)
 
 // NOTE: This is not the most elegant code however, some concessions were made to
 // make this as fast as possible as you could get hundreds of inserts per second
-void HEPDao::save(SipMessage* msg)
+void HEPDao::save(json::Object& object)
 {
-  SQLRETURN err;
-  if (msg->isInvalid())
+  json::Number ipProtoId = object["IpProtoId"]; // = json::Number(HEPMessage::TCP);
+  json::String ip4SrcAddress = object["Ip4SrcAddress"]; // = json::String(_localHost.c_str());
+  json::String ip4DestAddress = object["Ip4DestAddress"]; // = json::String(address);
+  json::Number srcPort = object["SrcPort"]; // = json::Number(_localPort);
+  json::Number destPort = object["DestPort"]; // = json::Number(port);
+  json::Number timeStamp = object["TimeStamp"]; // = json::Number(now.tv_sec);
+  json::Number timeStampMicroOffset = object["TimeStampMicroOffset"]; // = json::Number(now.tv_usec);
+  json::String data = object["Data"]; // = json::String(msg.c_str());
+
+  Data buffer(data.Value().c_str());
+  OS_LOG_INFO(FAC_NET, "HEPCaptureAgent::onReceivedEvent SIP Message " << data.Value().c_str());
+  SipMessage* msg = SipMessage::make(buffer);
+
+  
+  if (!msg || msg->isInvalid())
     return;
 
-  err = SQLFreeStmt(mInsert, SQL_UNBIND);
+  SQLRETURN err = SQLFreeStmt(mInsert, SQL_UNBIND);
   checkError(err, mInsert, SQL_HANDLE_STMT);
   mFieldIndex = 0;
 
+  struct timeval now;
+  now.tv_sec = timeStamp.Value();
+  now.tv_usec = timeStampMicroOffset.Value();
+  time_t timeNow = now.tv_sec;
+  struct tm* gmt = gmtime (&timeNow);
+
   // date
   TIMESTAMP_STRUCT date;
-  date.year = 2012;
-  date.month = 6;
-  date.day = 22;
-  date.hour = 0;
-  date.minute = 0;
-  date.second = 0;
+  date.year = gmt->tm_year + 1900;
+  date.month = gmt->tm_mon;
+  date.day = gmt->tm_mday;
+  date.hour = gmt->tm_hour;
+  date.minute = gmt->tm_min;
+  date.second = gmt->tm_sec;
   date.fraction = 0;
   bind(DATE, &date, sizeof(date));
 
   // micro_ts
-  long long microTs = 0;
+  long long microTs = now.tv_usec;
   bind(MICRO_TS, &microTs, sizeof(microTs));
 
   // method
@@ -180,11 +200,11 @@ void HEPDao::save(SipMessage* msg)
     ostringstream strm;
     msg->const_header(h_RequestLine).uri().encode(strm);
     requestLine = strm.str();
-    bind(RESPONSE_URI, (void *) requestLine.data(), requestLine.length());
+    bind(REQUESTURI, (void *) requestLine.data(), requestLine.length());
 
     // ruri_user
     requestUriUser = msg->const_header(h_RequestLine).uri().user().c_str();
-    bind(RESPONSE_USER, (void *) requestUriUser.data(), requestUriUser.length());
+    bind(REQUESTURI_USER, (void *) requestUriUser.data(), requestUriUser.length());
   }
   else
   {
@@ -329,37 +349,45 @@ void HEPDao::save(SipMessage* msg)
   }
 
   // source_ip
-
+  bind(SOURCE_IP, (void *) ip4SrcAddress.Value().c_str(), ip4SrcAddress.Value().length());
   // source_port
-
+  unsigned short sourcePort = (unsigned short)srcPort.Value();
+  bind(SOURCE_PORT, (void*)&sourcePort, sizeof(unsigned short));
   // destination_ip
-
+  bind(DEST_IP, (void *) ip4DestAddress.Value().c_str(), ip4DestAddress.Value().length());
   // destination_port
+  unsigned short destinationPort = (unsigned short)destPort.Value();
+  bind(DEST_PORT, (void*)&destinationPort, sizeof(unsigned short));
+
 
   // originator_ip
 
   // originator_port
 
   // proto
-
+  int protoId = (int)ipProtoId.Value();
+  bind(PROTO, (void*)&protoId, sizeof(int));
   // family
   // only field in schema allowed to be NULL
-  bind(FAMILY, NULL, 0);
+  int protoFamily = HEPMessage::IpV4;
+  bind(FAMILY, (void*)&protoFamily, sizeof(int));
 
   // rtp_stat
 
   // type
-
+  int protocolType = HEPMessage::SipX;
+  bind(TYPE, (void*)&protocolType, sizeof(int));
   // node
 
   // NOTE: Need to always bind last column or you get SQL unbound cols error
 
   // msg
-  string body = "";
-  bind(MSG, (void *) body.data(), body.length());
+  bind(MSG, (void *) data.Value().c_str(), data.Value().length());
 
   err = SQLExecute(mInsert);
   checkError(err, mInsert, SQL_HANDLE_STMT);
+
+  delete msg;
 }
 
 void HEPDao::bind(Capture c, void *data, int len) {
