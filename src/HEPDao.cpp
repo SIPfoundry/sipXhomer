@@ -122,8 +122,9 @@ void HEPDao::save(json::Object& object)
   bind(DATE, &date, sizeof(date));
 
   // micro_ts
-  long long microTs = now.tv_usec;
-  bind(MICRO_TS, &microTs, sizeof(microTs));
+  unsigned long long microTs = (unsigned long long)now.tv_sec*1000000+now.tv_usec;
+  bind(MICRO_TS, &microTs, sizeof(unsigned long long));
+
 
   // method
   string cseqMethod;
