@@ -291,11 +291,12 @@ void HEPDao::save(json::Object& object)
     ostringstream viaStrm;
     frontVia.encode(viaStrm);
     via = viaStrm.str();
+    bind(VIA_1, (void *) via.data(), via.length());
 
     if (frontVia.param(p_branch).hasMagicCookie())
       viaBranch = "z9hG4bK";
     viaBranch += frontVia.param(p_branch).getTransactionId().c_str();
-    bind(VIA_1, (void *) viaBranch.data(), viaBranch.length());
+    bind(VIA_1_BRANCH, (void *) viaBranch.data(), viaBranch.length());
   }
 
   // via_1_branch
