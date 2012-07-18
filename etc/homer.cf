@@ -119,15 +119,16 @@ bundle edit_line homer_web_preferences_php {
     
   insert_lines:
     "define('$(k)',$(v[$(k)]));"
-	   location => after_php_header;
+       select_region => php_body;
 
   delete_lines:
     "^\s*define\(\s*'$(k)'\s*,.*$";
 }
 
-body location after_php_header {
-  select_line_matching => "<\?php\s*";
-  before_after => "after";
+body select_region php_body {
+  select_start => "<\?php\s*";
+  select_end => "^\s*\?>";
+  include_start_delimiter => "false";
 }
 
 bundle edit_line homer_web_configuration_php {
