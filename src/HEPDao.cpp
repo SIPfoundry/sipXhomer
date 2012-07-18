@@ -113,7 +113,7 @@ void HEPDao::save(json::Object& object)
   // date
   TIMESTAMP_STRUCT date;
   date.year = gmt->tm_year + 1900;
-  date.month = gmt->tm_mon;
+  date.month = gmt->tm_mon + 1;
   date.day = gmt->tm_mday;
   date.hour = gmt->tm_hour;
   date.minute = gmt->tm_min;
@@ -293,13 +293,14 @@ void HEPDao::save(json::Object& object)
     via = viaStrm.str();
     bind(VIA_1, (void *) via.data(), via.length());
 
+    // via_1_branch
     if (frontVia.param(p_branch).hasMagicCookie())
       viaBranch = "z9hG4bK";
     viaBranch += frontVia.param(p_branch).getTransactionId().c_str();
     bind(VIA_1_BRANCH, (void *) viaBranch.data(), viaBranch.length());
   }
 
-  // via_1_branch
+  
 
   // cseq
   string cseq;
