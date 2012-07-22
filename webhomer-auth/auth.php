@@ -2,6 +2,9 @@
 
 defined( '_HOMEREXEC' ) or die( 'Restricted access' );
 
+# XX-10272 - required for 32-bit or get error on login
+ini_set('mongo.native_long', 0);
+
 require("class/auth/index.php");
 require("class/auth/sipx/settings.php");
 
