@@ -81,32 +81,62 @@ void HEPDao::connect(string& connection)
 
 // NOTE: This is not the most elegant code however, some concessions were made to
 // make this as fast as possible as you could get hundreds of inserts per second
-void HEPDao::save(json::Object& object)
+void HEPDao::save(StateQueueMessage& object)
 {
-  json::Number ipProtoId = object["IpProtoId"]; // = json::Number(HEPMessage::TCP);
-  json::String ip4SrcAddress = object["Ip4SrcAddress"]; // = json::String(_localHost.c_str());
-  json::String ip4DestAddress = object["Ip4DestAddress"]; // = json::String(address);
-  json::Number srcPort = object["SrcPort"]; // = json::Number(_localPort);
-  json::Number destPort = object["DestPort"]; // = json::Number(port);
-  json::Number timeStamp = object["TimeStamp"]; // = json::Number(now.tv_sec);
-  json::Number timeStampMicroOffset = object["TimeStampMicroOffset"]; // = json::Number(now.tv_usec);
-  json::String data = object["Data"]; // = json::String(msg.c_str());
+  //json::Number ipProtoId = object["IpProtoId"]; // = json::Number(HEPMessage::TCP);
+  int ipProtoId;
+  std::string ip4SrcAddress;
+  std::string ip4DestAddress;
+  int srcPort;
+  int destPort;
+  double timeStamp;
+  double timeStampMicroOffset;
+  std::string data;
 
-  Data buffer(data.Value().c_str());
-  OS_LOG_INFO(FAC_NET, "HEPCaptureAgent::onReceivedEvent SIP Message " << data.Value().c_str());
+  if (!object.get("IpProtoId", ipProtoId))
+    return;
+
+  if (!object.get("Ip4SrcAddress", ip4SrcAddress))
+    return;
+
+  if (!object.get("Ip4DestAddress", ip4DestAddress))
+    return;
+
+  if (!object.get("SrcPort", srcPort))
+    return;
+
+  if (!object.get("DestPort", destPort))
+    return;
+
+  if (!object.get("TimeStamp", timeStamp))
+    return;
+
+  if (!object.get("TimeStampMicroOffset", timeStampMicroOffset))
+    return;
+
+  if (!object.get("Data", data))
+    return;
+
+  Data buffer(data.c_str());
+  OS_LOG_INFO(FAC_NET, "HEPCaptureAgent::onReceivedEvent SIP Message " << data.c_str());
   SipMessage* msg = SipMessage::make(buffer);
 
-  
-  if (!msg || msg->isInvalid())
+  if (!msg)
     return;
+
+  if (msg->isInvalid())
+  {
+    delete msg;
+    return;
+  }
 
   SQLRETURN err = SQLFreeStmt(mInsert, SQL_UNBIND);
   checkError(err, mInsert, SQL_HANDLE_STMT);
   mFieldIndex = 0;
 
   struct timeval now;
-  now.tv_sec = timeStamp.Value();
-  now.tv_usec = timeStampMicroOffset.Value();
+  now.tv_sec = timeStamp;
+  now.tv_usec = timeStampMicroOffset;
   time_t timeNow = now.tv_sec;
   struct tm* gmt = gmtime (&timeNow);
 
@@ -352,14 +382,14 @@ void HEPDao::save(json::Object& object)
   }
 
   // source_ip
-  bind(SOURCE_IP, (void *) ip4SrcAddress.Value().c_str(), ip4SrcAddress.Value().length());
+  bind(SOURCE_IP, (void *) ip4SrcAddress.c_str(), ip4SrcAddress.length());
   // source_port
-  unsigned short sourcePort = (unsigned short)srcPort.Value();
+  unsigned short sourcePort = (unsigned short)srcPort;
   bind(SOURCE_PORT, (void*)&sourcePort, sizeof(unsigned short));
   // destination_ip
-  bind(DEST_IP, (void *) ip4DestAddress.Value().c_str(), ip4DestAddress.Value().length());
+  bind(DEST_IP, (void *) ip4DestAddress.c_str(), ip4DestAddress.length());
   // destination_port
-  unsigned short destinationPort = (unsigned short)destPort.Value();
+  unsigned short destinationPort = (unsigned short)destPort;
   bind(DEST_PORT, (void*)&destinationPort, sizeof(unsigned short));
 
 
@@ -368,7 +398,7 @@ void HEPDao::save(json::Object& object)
   // originator_port
 
   // proto
-  int protoId = (int)ipProtoId.Value();
+  int protoId = (int)ipProtoId;
   bind(PROTO, (void*)&protoId, sizeof(int));
   // family
   // only field in schema allowed to be NULL
@@ -385,7 +415,7 @@ void HEPDao::save(json::Object& object)
   // NOTE: Need to always bind last column or you get SQL unbound cols error
 
   // msg
-  bind(MSG, (void *) data.Value().c_str(), data.Value().length());
+  bind(MSG, (void *) data.c_str(), data.length());
 
   err = SQLExecute(mInsert);
   checkError(err, mInsert, SQL_HANDLE_STMT);

@@ -42,7 +42,7 @@ public:
     HEPDao();
     ~HEPDao();
     void connect(std::string& connection);
-    void save(json::Object& object);
+    void save(StateQueueMessage& object);
 private:
     enum Capture {
       DATE,

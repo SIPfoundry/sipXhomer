@@ -4,9 +4,7 @@
 #include <sys/time.h>
 #include <sstream>
 #include <net/NetBase64Codec.h>
-#include "sqa/json/reader.h"
-#include "sqa/json/writer.h"
-#include "sqa/json/elements.h"
+#include <sqa/StateQueueMessage.h>
 
 /// Factory used by PluginHooks to dynamically link the plugin instance
 extern "C" SipBidirectionalProcessorPlugin* getTransactionPlugin(const UtlString& pluginName)
@@ -46,29 +44,30 @@ void HomerProxyPlugin::handleIncoming(SipMessage& message, const char* address, 
   struct timeval now;
   gettimeofday(&now, NULL);
 
-  std::string msg;
-  msg = message.getBytes();
+  ssize_t length = 0;
+  UtlString bufferString;
+  message.getBytes(&bufferString, &length, true) ;
 
-  json::Object object;
-  object["IpProtoId"] = json::Number(HEPMessage::TCP);
-  object["Ip4SrcAddress"] = json::String(address);
-  object["Ip4DestAddress"] = json::String(_localHost.c_str());
-  object["SrcPort"] = json::Number(port);
-  object["DestPort"] = json::Number(_localPort);
-  object["TimeStamp"] = json::Number(now.tv_sec);
-  object["TimeStampMicroOffset"] = json::Number(now.tv_usec);
-  object["Data"] = json::String(msg.c_str());
+  if (length > 65536)
+    return;
 
-  try
-  {
-    std::ostringstream strm;
-    json::Writer::Write(object, strm);
-    _sqa.publish("CAP", strm.str().c_str());
-  }
-  catch(std::exception& error)
-  {
-  }
+  std::string data(bufferString.data(), length);
 
+  StateQueueMessage msg;
+  msg.setType(StateQueueMessage::Data);
+  msg.set("Outgoing", 0);
+  msg.set("IpProtoId", (int)HEPMessage::TCP);
+  msg.set("Ip4SrcAddress", address);
+  msg.set("Ip4DestAddress", _localHost.c_str());
+  msg.set("SrcPort", port);
+  msg.set("DestPort", _localPort);
+  msg.set("TimeStamp", (double)now.tv_sec);
+  msg.set("TimeStampMicroOffset", (double)now.tv_usec);
+  msg.set("Data", data.c_str());
+
+
+  std::string msgData = msg.data();
+  _sqa.publish("CAP", msgData.c_str());
 }
 
 void HomerProxyPlugin::handleOutgoing(SipMessage& message, const char* address, int port)
@@ -76,28 +75,31 @@ void HomerProxyPlugin::handleOutgoing(SipMessage& message, const char* address, 
   struct timeval now;
   gettimeofday(&now, NULL);
 
-  std::string msg;
-  msg = message.getBytes();
+  
+  ssize_t length = 0;
+  UtlString bufferString;
+  message.getBytes(&bufferString, &length, true);
+  
+  if (length > 65536)
+    return;
+  
+  std::string data(bufferString.data(), length);
 
-  json::Object object;
-  object["IpProtoId"] = json::Number(HEPMessage::TCP);
-  object["Ip4SrcAddress"] = json::String(_localHost.c_str());
-  object["Ip4DestAddress"] = json::String(address);
-  object["SrcPort"] = json::Number(_localPort);
-  object["DestPort"] = json::Number(port);
-  object["TimeStamp"] = json::Number(now.tv_sec);
-  object["TimeStampMicroOffset"] = json::Number(now.tv_usec);
-  object["Data"] = json::String(msg.c_str());
 
-  try
-  {
-    std::ostringstream strm;
-    json::Writer::Write(object, strm);
-    _sqa.publish("CAP", strm.str().c_str());
-  }
-  catch(std::exception& error)
-  {
-  }
+  StateQueueMessage msg;
+  msg.setType(StateQueueMessage::Data);
+  msg.set("Outgoing", 1);
+  msg.set("IpProtoId", (int)HEPMessage::TCP);
+  msg.set("Ip4SrcAddress", _localHost.c_str());
+  msg.set("Ip4DestAddress", address);
+  msg.set("SrcPort", _localPort);
+  msg.set("DestPort", port);
+  msg.set("TimeStamp", (double)now.tv_sec);
+  msg.set("TimeStampMicroOffset", (double)now.tv_usec);
+  msg.set("Data", data.c_str());
+
+  std::string msgData = msg.data();
+  _sqa.publish("CAP", msgData.c_str());
 }
 
 

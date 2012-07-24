@@ -17,6 +17,7 @@
 #include "sqa/sqaclient.h"
 #include <boost/date_time.hpp>
 #include "sipxhomer/HEPCaptureAgent.h"
+#include "sqa/StateQueueMessage.h"
 
 
 using namespace resip;
@@ -62,16 +63,16 @@ void HEPCaptureAgent::internalRun()
     {
       try
       {
+
         std::string buff = std::string(pEvent->data, pEvent->data_len);
-        std::stringstream strm;
-        strm << buff;
-        json::Object object;
-        json::Reader::Read(object, strm);
-        _dao.save(object);
+        StateQueueMessage object;
+        if (object.parseData(buff))
+          _dao.save(object);
       }
       catch(std::exception& error)
       {
       }
+      delete pEvent;
     }
     else
     {
