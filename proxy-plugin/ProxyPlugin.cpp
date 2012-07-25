@@ -44,14 +44,9 @@ void HomerProxyPlugin::handleIncoming(SipMessage& message, const char* address, 
   struct timeval now;
   gettimeofday(&now, NULL);
 
-  ssize_t length = 0;
-  UtlString bufferString;
-  message.getBytes(&bufferString, &length, true) ;
+  std::string data = message.getString();
 
-  if (length > 65536)
-    return;
-
-  std::string data(bufferString.data(), length);
+  //OS_LOG_ERROR(FAC_SIP, "LENGTH: " << data.size() << " - " << data);
 
   StateQueueMessage msg;
   msg.setType(StateQueueMessage::Data);
@@ -75,16 +70,9 @@ void HomerProxyPlugin::handleOutgoing(SipMessage& message, const char* address, 
   struct timeval now;
   gettimeofday(&now, NULL);
 
-  
-  ssize_t length = 0;
-  UtlString bufferString;
-  message.getBytes(&bufferString, &length, true);
-  
-  if (length > 65536)
-    return;
-  
-  std::string data(bufferString.data(), length);
+  std::string data = message.getString();
 
+  //OS_LOG_ERROR(FAC_SIP, "LENGTH: " << data.size() << " - " << data);
 
   StateQueueMessage msg;
   msg.setType(StateQueueMessage::Data);
