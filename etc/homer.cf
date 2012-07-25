@@ -147,6 +147,7 @@ define('HOMER_DB', \"homer_db\");
 define('HOMER_TABLE', \"sip_capture\");
 define('PCAPDIR',\"$(homer_vars.tmpdir)/\");
 define('WEBPCAPLOC',\"/webhomer/tmp/\");
+define('APIURL',\"http://localhost\");
 define('APILOC',\"/webhomer/api/\");
 
 include(\"preferences.php\");
