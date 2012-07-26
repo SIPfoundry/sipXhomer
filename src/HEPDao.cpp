@@ -25,10 +25,15 @@ HEPDao::HEPDao() {
   fill_n(mType, sizeof(mType), SQL_C_CHAR);
   mType[DATE] = SQL_C_TIMESTAMP;
   mType[MICRO_TS] = SQL_C_SBIGINT;
+
   mType[CONTACT_PORT] = SQL_C_LONG;
   mType[SOURCE_PORT] = SQL_C_LONG;
   mType[DEST_PORT] = SQL_C_LONG;
   mType[ORIGINATOR_PORT] = SQL_C_LONG;
+
+  mType[PROTO] = SQL_C_LONG;
+  mType[FAMILY] = SQL_C_LONG;
+  mType[TYPE] = SQL_C_LONG;
 }
 
 HEPDao::~HEPDao()
@@ -401,33 +406,36 @@ void HEPDao::save(StateQueueMessage& object)
 
   // source_ip
   bind(SOURCE_IP, (void *) ip4SrcAddress.c_str(), ip4SrcAddress.length());
+
   // source_port
-  unsigned short sourcePort = (unsigned short)srcPort;
-  bind(SOURCE_PORT, (void*)&sourcePort, sizeof(unsigned short));
+  bind(SOURCE_PORT, (void*)&srcPort, sizeof(srcPort));
+
   // destination_ip
   bind(DEST_IP, (void *) ip4DestAddress.c_str(), ip4DestAddress.length());
-  // destination_port
-  unsigned short destinationPort = (unsigned short)destPort;
-  bind(DEST_PORT, (void*)&destinationPort, sizeof(unsigned short));
 
+  // destination_port
+  bind(DEST_PORT, (void*)&destPort, sizeof(destPort));
 
   // originator_ip
 
   // originator_port
+  int zero = 0;
+  bind(ORIGINATOR_PORT, (void*)&zero, sizeof(zero));
 
   // proto
   int protoId = (int)ipProtoId;
-  bind(PROTO, (void*)&protoId, sizeof(int));
+  bind(PROTO, (void*)&protoId, sizeof(protoId));
+
   // family
   // only field in schema allowed to be NULL
   int protoFamily = HEPMessage::IpV4;
-  bind(FAMILY, (void*)&protoFamily, sizeof(int));
+  bind(FAMILY, (void*)&protoFamily, sizeof(protoFamily));
 
   // rtp_stat
 
   // type
   int protocolType = HEPMessage::SipX;
-  bind(TYPE, (void*)&protocolType, sizeof(int));
+  bind(TYPE, (void*)&protocolType, sizeof(protocolType));
   // node
 
   // NOTE: Need to always bind last column or you get SQL unbound cols error
@@ -455,7 +463,7 @@ void HEPDao::bind(Capture c, void *data, int len) {
     // if you have an exception call explicitly for field
     //    bind(FIELD_ID, NULL, 0);
     //
-    void *nil = (mType[c] == SQL_C_CHAR ? (void *)blank : NULL);
+    void *nil = (mType[mFieldIndex] == SQL_C_CHAR ? (void *)blank : NULL);
     bind((Capture) mFieldIndex, nil, 0);
   }
 
