@@ -18,8 +18,9 @@
 #include <string>
 #include <sstream>
 
-#include "sipxhomer/HEPMessage.h"
+#include <sqa/StateQueueMessage.h>
 #include "sipxhomer/HEPDao.h"
+#include "sipxhomer/HEPMessage.h"
 
 using namespace std;
 using namespace resip;
@@ -48,25 +49,22 @@ public:
           "User-Agent: sipXecs\r\n"
           "Call-ID: homertest12345\r\n\r\n";
 
-     HEPMessage message;
-     message.setIpProtoFamily(HEPMessage::IpV4);
-     message.setIpProtoId(HEPMessage::TCP);
-     message.setIp4SrcAddress("192.168.1.10");
-     message.setIp4DestAddress("192.168.1.11");
-     message.setSrcPort(5060);
-     message.setDestPort(5060);
-     message.setTimeStamp(1000);
-     message.setTimeStampMicroOffset(1000);
-     message.setProtocolType(HEPMessage::SIP);
-     message.setData(sipMessage);
+     StateQueueMessage msg;
+     msg.set("IpProtoId", (int)HEPMessage::TCP);
+     msg.set("Outgoing", 0);
+     msg.set("Ip4SrcAddress", "192.168.1.10");
+     msg.set("Ip4DestAddress", "192.168.1.11");
+     msg.set("SrcPort", 5060);
+     msg.set("DestPort", 5060);
+     msg.set("TimeStamp", 1000);
+     msg.set("TimeStampMicroOffset", (double) 1000);
+     msg.set("Data", sipMessage.c_str());
 
      //ostringstream strm;
      //message.encode(strm);
      //HEPMessage parsed;
      //parsed.parse(strm.str());
 
-     Data buffer(sipMessage);
-     SipMessage* msg = SipMessage::make(buffer);
      dao.save(msg);     
 
      CPPUNIT_ASSERT(true);
