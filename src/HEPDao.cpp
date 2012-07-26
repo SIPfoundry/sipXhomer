@@ -17,6 +17,7 @@
 #include "sipxhomer/HEPDao.h"
 #include "sipxhomer/HEPMessage.h"
 
+
 using namespace std;
 using namespace resip;
 
@@ -84,6 +85,7 @@ void HEPDao::connect(string& connection)
 void HEPDao::save(StateQueueMessage& object)
 {
   //json::Number ipProtoId = object["IpProtoId"]; // = json::Number(HEPMessage::TCP);
+  int outgoing;
   int ipProtoId;
   std::string ip4SrcAddress;
   std::string ip4DestAddress;
@@ -92,6 +94,9 @@ void HEPDao::save(StateQueueMessage& object)
   double timeStamp;
   double timeStampMicroOffset;
   std::string data;
+
+  if (!object.get("Outgoing", outgoing))
+    return;
 
   if (!object.get("IpProtoId", ipProtoId))
     return;
@@ -117,8 +122,9 @@ void HEPDao::save(StateQueueMessage& object)
   if (!object.get("Data", data))
     return;
 
+
   Data buffer(data.c_str());
-  OS_LOG_INFO(FAC_NET, "HEPCaptureAgent::onReceivedEvent SIP Message " << data.c_str());
+
   SipMessage* msg = SipMessage::make(buffer);
 
   if (!msg)
@@ -225,6 +231,9 @@ void HEPDao::save(StateQueueMessage& object)
   string requestLine;
   string statusLine;
   string requestUriUser;
+
+  const char* direction = outgoing ? "Outgoing" : "Incoming";
+
   if (msg->isRequest())
   {
     // ruri
@@ -236,13 +245,22 @@ void HEPDao::save(StateQueueMessage& object)
     // ruri_user
     requestUriUser = msg->const_header(h_RequestLine).uri().user().c_str();
     bind(REQUESTURI_USER, (void *) requestUriUser.data(), requestUriUser.length());
+
+    OS_LOG_INFO(FAC_NET, "HEPCaptureAgent::onReceivedEvent " << direction << ": " << cseqMethod << " "
+            << ip4SrcAddress << ":" << srcPort << "->"
+            << ip4DestAddress << ":" << destPort );
   }
   else
   {
     ostringstream strm;
     msg->const_header(h_StatusLine).encode(strm);
     statusLine = strm.str();  // where does this go
+    OS_LOG_INFO(FAC_NET, "HEPCaptureAgent::onReceivedEvent " << direction << ": " << statusLine << " "
+            << ip4SrcAddress << ":" << srcPort << "->"
+            << ip4DestAddress << ":" << destPort);
   }
+
+  OS_LOG_DEBUG(FAC_NET, "HEPCaptureAgent::onReceivedEvent SIP Message " << data.c_str());
 
   string fromTag;
   string fromUser;
@@ -330,7 +348,7 @@ void HEPDao::save(StateQueueMessage& object)
     bind(VIA_1_BRANCH, (void *) viaBranch.data(), viaBranch.length());
   }
 
-  
+
 
   // cseq
   string cseq;
