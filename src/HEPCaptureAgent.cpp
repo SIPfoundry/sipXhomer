@@ -28,12 +28,15 @@ HEPCaptureAgent::HEPCaptureAgent(ServiceOptions& options, HEPDao& dao) :
   _dao(dao),
   _pRunThread(0)
 {
+  _pWatcher = new SQAWatcher("HEPCaptureAgent", "CAP", 1);
   OS_LOG_ERROR(FAC_NET, "HEPCaptureAgent CREATED");
 }
 
 HEPCaptureAgent::~HEPCaptureAgent()
 {
   stop();
+  delete _pWatcher;
+  _pWatcher = 0;
 }
 
 void HEPCaptureAgent::run()
@@ -46,14 +49,8 @@ void HEPCaptureAgent::run()
 
 void HEPCaptureAgent::internalRun()
 {
-  if (_pWatcher)
-    return;
-  
   std::string sqaAddress;
-  std::string sqaPort;
-  
- 
-  _pWatcher = new SQAWatcher("HEPCaptureAgent", "CAP", 1);
+  std::string sqaPort; 
 
   OS_LOG_INFO(FAC_NET, "HEPCaptureAgent::internalRun started capturing events");
   while(_isRunning)
@@ -61,9 +58,10 @@ void HEPCaptureAgent::internalRun()
     SQAEvent* pEvent = _pWatcher->watch();
     if (pEvent)
     {
+      if (strcmp(pEvent->id, SQA_TERMINATE_STRING) == 0)
+        break;
       try
       {
-
         std::string buff = std::string(pEvent->data, pEvent->data_len);
         StateQueueMessage object;
         if (object.parseData(buff))
@@ -81,8 +79,7 @@ void HEPCaptureAgent::internalRun()
     }
   }
 
-  delete _pWatcher;
-  _pWatcher = 0;
+  OS_LOG_INFO(FAC_NET, "HEPCaptureAgent::internalRun TERMINATED");
 }
 
 void HEPCaptureAgent::stop()
@@ -90,6 +87,8 @@ void HEPCaptureAgent::stop()
   _isRunning = false;
   if (_pRunThread)
   {
+    if (_pWatcher)
+      _pWatcher->terminate();
     _pRunThread->join();
     delete _pRunThread;
     _pRunThread = 0;

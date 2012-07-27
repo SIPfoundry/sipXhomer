@@ -33,24 +33,27 @@ int main(int argc , char** argv)
     return -1;
   }
   
-  HEPDao dao;
+  HEPDao* pDao = new HEPDao();
   string dbUrl;
   service.getOption("db-url", dbUrl);
-  dao.connect(dbUrl);
-  HEPCaptureAgent agent(service, dao);
-  agent.run();
+  pDao->connect(dbUrl);
+
+  HEPCaptureAgent* pAgent = new HEPCaptureAgent(service, *pDao);
+  pAgent->run();
 
 
   if (service.hasOption("test-driver"))
   {
-    HEPTestDriver test(agent);
+    HEPTestDriver test(*pAgent);
     if (!test.runTests())
       return -1;
-    agent.stop();
+    pAgent->stop();
     return 0;
   }
 
   service.waitForTerminationRequest();
-  agent.stop();
-  
+
+  pAgent->stop();
+  delete pAgent;
+  delete pDao;
 }
