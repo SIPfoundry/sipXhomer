@@ -66,9 +66,12 @@ void HEPCaptureAgent::internalRun()
         StateQueueMessage object;
         if (object.parseData(buff))
           _dao.save(object);
+        else
+          OS_LOG_ERROR(FAC_NET, "HEPCaptureAgent::internalRun ERROR: Unable to parse incoming event string. LENGTH: " <<  pEvent->data_len << " DATA: " << pEvent->data);
       }
       catch(std::exception& error)
       {
+        OS_LOG_INFO(FAC_NET, "HEPCaptureAgent::internalRun ERROR: " << error.what());
       }
       delete pEvent;
     }
