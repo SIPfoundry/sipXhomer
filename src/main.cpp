@@ -22,6 +22,8 @@ using namespace std;
 
 int main(int argc , char** argv)
 {
+  ServiceOptions::daemonize(argc, argv);
+
   ServiceOptions service(argc, argv, "sipxhomer");
   service.addDaemonOptions();
 
