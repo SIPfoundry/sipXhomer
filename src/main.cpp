@@ -27,35 +27,19 @@ int main(int argc , char** argv)
   ServiceOptions service(argc, argv, "sipxhomer");
   service.addDaemonOptions();
 
-  service.addOptionFlag("test-driver", ": Run internal test for proper HEP v3 operations.");
-
   if (!service.parseOptions())
   {
     service.displayUsage(std::cerr);
     return -1;
   }
   
-  HEPDao* pDao = new HEPDao();
   string dbUrl;
   service.getOption("db-url", dbUrl);
-  pDao->connect(dbUrl);
 
-  HEPCaptureAgent* pAgent = new HEPCaptureAgent(service, *pDao);
-  pAgent->run();
-
-
-  if (service.hasOption("test-driver"))
-  {
-    HEPTestDriver test(*pAgent);
-    if (!test.runTests())
-      return -1;
-    pAgent->stop();
-    return 0;
-  }
-
+  HEPDao dao;
+  dao.connect(dbUrl);
+  HEPCaptureAgent agent(service, dao);
+  agent.run();
   service.waitForTerminationRequest();
-
-  pAgent->stop();
-  delete pAgent;
-  delete pDao;
+  agent.stop();
 }
