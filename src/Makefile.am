@@ -18,7 +18,6 @@ sipxhomer_LDADD = \
 	-lrutil \
 	-lssl \
 	-lcrypto \
-	-lares \
 	-lpthread \
 	-lmongoclient \
 	@ODBC_LDFLAGS@ \

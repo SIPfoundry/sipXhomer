@@ -71,11 +71,12 @@ bundle agent homer_capture_config {
   files:
     homer_capture::
       "$(sipx.SIPX_CONFDIR)/sipxhomer.ini"
-        comment => "Homer capture server",
-        create => "true",
-        perms => mog("600","$(sipx.SIPXPBXUSER)","$(sipx.SIPXPBXGROUP)"),
-        edit_defaults => empty,
-        edit_line => homer_capture_config_contents;
+      comment => "Homer capture server",
+      create => "true",
+      perms => mog("600","$(sipx.SIPXPBXUSER)","$(sipx.SIPXPBXGROUP)"),
+      edit_defaults => empty,
+      edit_line => homer_capture_config_contents,
+      classes => if_repaired("restart_homer_capture");
 }
 
 bundle edit_line homer_capture_config_contents {
@@ -213,7 +214,7 @@ bundle agent homer_capture_running {
         comment => "start sipxhomer",
         args => "start";
 
-    homer_capture.homer_capture_running.(restart_homer_capturey|restart_sipxecs)::
+    homer_capture.homer_capture_running.(restart_homer_capture|restart_sipxecs)::
       "$(sipx.SIPX_SERVICEDIR)/sipxhomer"
         comment => "restart sipxhomer",
         args => "restart";

@@ -22,35 +22,27 @@ using namespace std;
 
 int main(int argc , char** argv)
 {
+  ServiceOptions::daemonize(argc, argv);
+
   ServiceOptions service(argc, argv, "sipxhomer");
   service.addDaemonOptions();
-
-  service.addOptionFlag("test-driver", ": Run internal test for proper HEP v3 operations.");
 
   if (!service.parseOptions())
   {
     service.displayUsage(std::cerr);
     return -1;
   }
-  
-  HEPDao dao;
-  string dbUrl;
-  service.getOption("db-url", dbUrl);
-  dao.connect(dbUrl);
-  HEPCaptureAgent agent(service, dao);
-  agent.run();
-
-
-  if (service.hasOption("test-driver"))
+  else
   {
-    HEPTestDriver test(agent);
-    if (!test.runTests())
-      return -1;
+    string dbUrl;
+    service.getOption("db-url", dbUrl);
+    HEPDao dao;
+    dao.connect(dbUrl);
+    HEPCaptureAgent agent(service, dao);
+    agent.run();
+    service.waitForTerminationRequest();
     agent.stop();
-    return 0;
   }
 
-  service.waitForTerminationRequest();
-  agent.stop();
-  
+  return 0;
 }

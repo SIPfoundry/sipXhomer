@@ -13,21 +13,28 @@
 #include <string>
 #include <sstream>
 #include <boost/throw_exception.hpp>
+#include <boost/algorithm/string.hpp>
 #include <resip/stack/SipMessage.hxx>
 #include "sipxhomer/HEPDao.h"
 #include "sipxhomer/HEPMessage.h"
 
-using namespace std;
+
 using namespace resip;
 
+
 HEPDao::HEPDao() {
-  fill_n(mType, sizeof(mType), SQL_C_CHAR);
+  std::fill_n(mType, sizeof(mType), SQL_C_CHAR);
   mType[DATE] = SQL_C_TIMESTAMP;
   mType[MICRO_TS] = SQL_C_SBIGINT;
+
   mType[CONTACT_PORT] = SQL_C_LONG;
   mType[SOURCE_PORT] = SQL_C_LONG;
   mType[DEST_PORT] = SQL_C_LONG;
   mType[ORIGINATOR_PORT] = SQL_C_LONG;
+
+  mType[PROTO] = SQL_C_LONG;
+  mType[FAMILY] = SQL_C_LONG;
+  mType[TYPE] = SQL_C_LONG;
 }
 
 HEPDao::~HEPDao()
@@ -37,7 +44,7 @@ HEPDao::~HEPDao()
     SQLFreeHandle(SQL_HANDLE_STMT, mInsert);
 }
 
-void HEPDao::connect(string& connection)
+void HEPDao::connect(std::string& connection)
 {
     SQLRETURN err;
     err = SQLAllocHandle(SQL_HANDLE_ENV, SQL_NULL_HANDLE, &mEnv);
@@ -76,6 +83,8 @@ void HEPDao::connect(string& connection)
     int len = strlen(insertSql);
     SQLPrepare(mInsert, (SQLCHAR *)insertSql, len);
     checkError(err, mInsert, SQL_HANDLE_STMT);
+
+    OS_LOG_INFO(FAC_NET, "HEPDao::connect " << connection << " SUCCEEDED.");
 }
 
 
@@ -83,18 +92,24 @@ void HEPDao::connect(string& connection)
 // make this as fast as possible as you could get hundreds of inserts per second
 void HEPDao::save(StateQueueMessage& object)
 {
-  //json::Number ipProtoId = object["IpProtoId"]; // = json::Number(HEPMessage::TCP);
-  int ipProtoId;
+  int outgoing = 0;
+  int ipProtoId = HEPMessage::TCP;
   std::string ip4SrcAddress;
   std::string ip4DestAddress;
-  int srcPort;
-  int destPort;
-  double timeStamp;
-  double timeStampMicroOffset;
+  int srcPort = 0;
+  int destPort = 0;
+  double timeStamp = 0;
+  double timeStampMicroOffset = 0;
   std::string data;
 
+  if (!object.get("Outgoing", outgoing))
+    return;
+
+#if 0 //  For now we determine this using the VIA header since the sipstack
+      //  does not include the transport type in the processor callback
   if (!object.get("IpProtoId", ipProtoId))
     return;
+#endif
 
   if (!object.get("Ip4SrcAddress", ip4SrcAddress))
     return;
@@ -117,8 +132,9 @@ void HEPDao::save(StateQueueMessage& object)
   if (!object.get("Data", data))
     return;
 
+
   Data buffer(data.c_str());
-  OS_LOG_INFO(FAC_NET, "HEPCaptureAgent::onReceivedEvent SIP Message " << data.c_str());
+
   SipMessage* msg = SipMessage::make(buffer);
 
   if (!msg)
@@ -157,7 +173,7 @@ void HEPDao::save(StateQueueMessage& object)
 
 
   // method
-  string cseqMethod;
+  std::string cseqMethod;
   if (msg->exists(h_CSeq))
   {
     switch(msg->const_header(h_CSeq).method())
@@ -214,21 +230,27 @@ void HEPDao::save(StateQueueMessage& object)
     bind(METHOD, (void *) cseqMethod.data(), cseqMethod.length());
   }
 
-  // reply_reason
-  string reason;
-  if (msg->exists(h_Reasons))
+  if (!msg->isRequest())
   {
-    reason = msg->const_header(h_Reasons).front().value().c_str();
-    bind(REPLY_REASON, (void *) reason.data(), reason.length());
+    // reply_reason
+    std::string reply_reason;
+    if (msg->exists(h_Reasons))
+    {
+      reply_reason = msg->const_header(h_Reasons).front().value().c_str();
+      bind(REPLY_REASON, (void *) reply_reason.data(), reply_reason.length());
+    }
   }
 
-  string requestLine;
-  string statusLine;
-  string requestUriUser;
+  std::string requestLine;
+  std::string statusLine;
+  std::string requestUriUser;
+
+  const char* direction = outgoing ? "Outgoing" : "Incoming";
+
   if (msg->isRequest())
   {
     // ruri
-    ostringstream strm;
+    std::ostringstream strm;
     msg->const_header(h_RequestLine).uri().encode(strm);
     requestLine = strm.str();
     bind(REQUESTURI, (void *) requestLine.data(), requestLine.length());
@@ -236,16 +258,25 @@ void HEPDao::save(StateQueueMessage& object)
     // ruri_user
     requestUriUser = msg->const_header(h_RequestLine).uri().user().c_str();
     bind(REQUESTURI_USER, (void *) requestUriUser.data(), requestUriUser.length());
+
+    OS_LOG_INFO(FAC_NET, "HEPDao::save " << direction << ": " << cseqMethod << " "
+            << ip4SrcAddress << ":" << srcPort << "->"
+            << ip4DestAddress << ":" << destPort );
   }
   else
   {
-    ostringstream strm;
+    std::ostringstream strm;
     msg->const_header(h_StatusLine).encode(strm);
     statusLine = strm.str();  // where does this go
+    OS_LOG_INFO(FAC_NET, "HEPDao::save " << direction << ": " << statusLine << " "
+            << ip4SrcAddress << ":" << srcPort << "->"
+            << ip4DestAddress << ":" << destPort);
   }
 
-  string fromTag;
-  string fromUser;
+  OS_LOG_DEBUG(FAC_NET, "HEPDao::save SIP Message " << data.c_str());
+
+  std::string fromTag;
+  std::string fromUser;
   if (msg->exists(h_From))
   {
     // from_user
@@ -254,12 +285,12 @@ void HEPDao::save(StateQueueMessage& object)
 
     // from_tag
     fromTag = msg->const_header(h_From).exists(p_tag) ? msg->const_header(h_From).param(p_tag).c_str()
-        : string();
+        : std::string();
     bind(FROM_TAG, (void *) fromTag.data(), fromTag.length());
   }
 
-  string toTag;
-  string toUser;
+  std::string toTag;
+  std::string toUser;
   if (msg->exists(h_To))
   {
     // to_user
@@ -268,22 +299,22 @@ void HEPDao::save(StateQueueMessage& object)
 
     // to_tag
     toTag = msg->const_header(h_To).exists(p_tag) ? msg->const_header(h_To).param(p_tag).c_str()
-        : string();
+        : std::string();
     bind(TO_TAG, (void *) toTag.data(), toTag.length());
   }
 
   // pid_user
-  string pidentity;
+  std::string pidentity;
   if (msg->exists(h_PAssertedIdentities))
   {
-    ostringstream pidStrm;
+    std::ostringstream pidStrm;
     msg->const_header(h_PAssertedIdentities).front().uri().encode(pidStrm);
     pidentity = pidStrm.str();
     bind(PID_USER, (void *) pidentity.data(), pidentity.length());
   }
 
-  string contactUser;
-  string contactHost;
+  std::string contactUser;
+  std::string contactHost;
   int contactPort = 0;
   if (msg->exists(h_Contacts))
   {
@@ -299,11 +330,23 @@ void HEPDao::save(StateQueueMessage& object)
     contactPort = msg->const_header(h_Contacts).front().uri().port();
     bind(CONTACT_PORT, (void *) &contactPort, sizeof(contactPort));
   }
+  else
+  {
+    //
+    // There is no contact but homer requires it cant be null
+    //
+    // contact_user
+    bind(CONTACT_USER, (void *) contactUser.data(), contactUser.length());
+    //contact_ip
+    bind(CONTACT_IP, (void *) contactHost.data(), contactHost.length());
+    //contact_port
+    bind(CONTACT_PORT, (void *) &contactPort, sizeof(contactPort));
+  }
 
   // auth_user
 
   // callid
-  string callId;
+  std::string callId;
   if (msg->exists(h_CallID))
   {
     callId = msg->const_header(h_CallID).value().c_str();
@@ -312,13 +355,14 @@ void HEPDao::save(StateQueueMessage& object)
 
   // callid_aleg
 
-  string viaBranch;
-  string via;
+  std::string viaBranch;
+  std::string via;
+  std::string viaProtocol;
   if (msg->exists(h_Vias))
   {
     // via_1
     Via& frontVia = msg->header(h_Vias).front();
-    ostringstream viaStrm;
+    std::ostringstream viaStrm;
     frontVia.encode(viaStrm);
     via = viaStrm.str();
     bind(VIA_1, (void *) via.data(), via.length());
@@ -328,13 +372,18 @@ void HEPDao::save(StateQueueMessage& object)
       viaBranch = "z9hG4bK";
     viaBranch += frontVia.param(p_branch).getTransactionId().c_str();
     bind(VIA_1_BRANCH, (void *) viaBranch.data(), viaBranch.length());
+
+    //
+    // Get the protocol string to be used for determining the transport type
+    //
+    viaProtocol = frontVia.protocolName().data();
+    boost::to_upper(viaProtocol);
   }
 
-  
 
   // cseq
-  string cseq;
-  ostringstream cseqStrm;
+  std::string cseq;
+  std::ostringstream cseqStrm;
   if (msg->exists(h_CSeq))
   {
     msg->const_header(h_CSeq).encode(cseqStrm);
@@ -344,37 +393,46 @@ void HEPDao::save(StateQueueMessage& object)
 
   // diversion
 
-  // reason
+  if (msg->isRequest())
+  {
+    // reason
+    std::string reason;
+    if (msg->exists(h_Reasons))
+    {
+      reason = msg->const_header(h_Reasons).front().value().c_str();
+      bind(REPLY_REASON, (void *) reason.data(), reason.length());
+    }
+  }
 
   // content_type
-  string contentType;
+  std::string contentType;
   if (msg->exists(h_ContentType))
   {
-    ostringstream ctypeStrm;
+    std::ostringstream ctypeStrm;
     msg->const_header(h_ContentType).encode(ctypeStrm);
     contentType = ctypeStrm.str();
     bind(CONTENT_TYPE, (void *) contentType.data(), contentType.length());
   }
 
   // authorization
-  string authorization;
+  std::string authorization;
   if (msg->exists(h_Authorizations))
   {
-    ostringstream authStrm;
+    std::ostringstream authStrm;
     msg->const_header(h_Authorizations).front().encode(authStrm);
     authorization = authStrm.str();
     bind(AUTH, (void *) authorization.data(), authorization.length());
   }
   else if (msg->exists(h_ProxyAuthorizations))
   {
-    ostringstream authStrm;
+    std::ostringstream authStrm;
     msg->const_header(h_ProxyAuthorizations).front().encode(authStrm);
     authorization = authStrm.str();
     bind(AUTH, (void *) authorization.data(), authorization.length());
   }
 
   // user_agent
-  string userAgent;
+  std::string userAgent;
   if (msg->exists(h_UserAgent))
   {
     userAgent = msg->const_header(h_UserAgent).value().c_str();
@@ -383,33 +441,42 @@ void HEPDao::save(StateQueueMessage& object)
 
   // source_ip
   bind(SOURCE_IP, (void *) ip4SrcAddress.c_str(), ip4SrcAddress.length());
+
   // source_port
-  unsigned short sourcePort = (unsigned short)srcPort;
-  bind(SOURCE_PORT, (void*)&sourcePort, sizeof(unsigned short));
+  bind(SOURCE_PORT, (void*)&srcPort, sizeof(srcPort));
+
   // destination_ip
   bind(DEST_IP, (void *) ip4DestAddress.c_str(), ip4DestAddress.length());
-  // destination_port
-  unsigned short destinationPort = (unsigned short)destPort;
-  bind(DEST_PORT, (void*)&destinationPort, sizeof(unsigned short));
 
+  // destination_port
+  bind(DEST_PORT, (void*)&destPort, sizeof(destPort));
 
   // originator_ip
 
   // originator_port
+  int zero = 0;
+  bind(ORIGINATOR_PORT, (void*)&zero, sizeof(zero));
 
   // proto
-  int protoId = (int)ipProtoId;
-  bind(PROTO, (void*)&protoId, sizeof(int));
+  if (!viaProtocol.empty())
+  {
+    if (viaProtocol == "TCP")
+      ipProtoId = HEPMessage::TCP;
+    else
+      ipProtoId= HEPMessage::UDP;
+  }
+  bind(PROTO, (void*)&ipProtoId, sizeof(ipProtoId));
+
   // family
   // only field in schema allowed to be NULL
   int protoFamily = HEPMessage::IpV4;
-  bind(FAMILY, (void*)&protoFamily, sizeof(int));
+  bind(FAMILY, (void*)&protoFamily, sizeof(protoFamily));
 
   // rtp_stat
 
   // type
   int protocolType = HEPMessage::SipX;
-  bind(TYPE, (void*)&protocolType, sizeof(int));
+  bind(TYPE, (void*)&protocolType, sizeof(protocolType));
   // node
 
   // NOTE: Need to always bind last column or you get SQL unbound cols error
@@ -437,7 +504,7 @@ void HEPDao::bind(Capture c, void *data, int len) {
     // if you have an exception call explicitly for field
     //    bind(FIELD_ID, NULL, 0);
     //
-    void *nil = (mType[c] == SQL_C_CHAR ? (void *)blank : NULL);
+    void *nil = (mType[mFieldIndex] == SQL_C_CHAR ? (void *)blank : NULL);
     bind((Capture) mFieldIndex, nil, 0);
   }
 
