@@ -32,14 +32,17 @@ int main(int argc , char** argv)
     service.displayUsage(std::cerr);
     return -1;
   }
-  
-  string dbUrl;
-  service.getOption("db-url", dbUrl);
+  else
+  {
+    string dbUrl;
+    service.getOption("db-url", dbUrl);
+    HEPDao dao;
+    dao.connect(dbUrl);
+    HEPCaptureAgent agent(service, dao);
+    agent.run();
+    service.waitForTerminationRequest();
+    agent.stop();
+  }
 
-  HEPDao dao;
-  dao.connect(dbUrl);
-  HEPCaptureAgent agent(service, dao);
-  agent.run();
-  service.waitForTerminationRequest();
-  agent.stop();
+  return 0;
 }
