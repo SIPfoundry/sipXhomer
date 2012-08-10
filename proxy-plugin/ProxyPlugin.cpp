@@ -14,7 +14,7 @@ extern "C" SipBidirectionalProcessorPlugin* getTransactionPlugin(const UtlString
 
 HomerProxyPlugin::HomerProxyPlugin(const UtlString& instanceName, int priority) :
   SipBidirectionalProcessorPlugin(instanceName, priority),
-  _sqa("HomerProxyPlugin", 1),
+  _sqa("HomerProxyPlugin", 1, 100/*read timeout in milliseconds*/, 100/*write timeout in milliseconds*/),
   _localPort(0)
 {
 }
@@ -62,7 +62,8 @@ void HomerProxyPlugin::handleIncoming(SipMessage& message, const char* address, 
 
 
   std::string msgData = msg.data();
-  _sqa.publish("CAP", msgData.c_str());
+  bool noresponse = true;
+  _sqa.publish("CAP", msgData.c_str(), noresponse);
 }
 
 void HomerProxyPlugin::handleOutgoing(SipMessage& message, const char* address, int port)
@@ -87,7 +88,8 @@ void HomerProxyPlugin::handleOutgoing(SipMessage& message, const char* address, 
   msg.set("Data", data.c_str());
 
   std::string msgData = msg.data();
-  _sqa.publish("CAP", msgData.c_str());
+  bool noresponse = true;
+  _sqa.publish("CAP", msgData.c_str(), noresponse);
 }
 
 
