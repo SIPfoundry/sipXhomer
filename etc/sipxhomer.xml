@@ -61,4 +61,19 @@
     </setting>
     <!--  Add more settings listed in preferences.php -->
   </group>
+  <group name="homer_db">
+    <setting name="rotate_enable">
+      <type>
+        <boolean>
+          <true><value>1</value></true>
+          <false><value>0</value></false>
+        </boolean>
+      </type>
+      <value>1</value>
+    </setting>
+    <setting name="rotate_hour">
+      <type><integer/></type>
+      <value>0</value>
+    </setting>
+  </group>
 </model>

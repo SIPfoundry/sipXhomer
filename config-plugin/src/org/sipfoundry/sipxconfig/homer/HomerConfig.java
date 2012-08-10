@@ -85,6 +85,7 @@ public class HomerConfig implements ConfigProvider {
         // no need copying them w/o reason.
         if (serverOn || webOn) {
             cfg.writeSettings(Homer.FEATURE_WEB.getId() + '_', settings.getSettings().getSetting("homer_web"));
+            cfg.writeSettings("homer_db_", settings.getSettings().getSetting("homer_db"));
             String authText;
             if (settings.isSuperadminAuth()) {
                 authText = "Please login with your superadmin credentials";

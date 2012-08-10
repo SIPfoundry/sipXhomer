@@ -23,6 +23,9 @@ bundle agent homer {
       "any" usebundle => mysql;
       "any" usebundle => mysql_ensure_db("homer_db", "$(homer_db)");
 
+    homer_web|homer_capture::
+      "any" usebundle => homer_db_partion;
+
     homer_web::
       "any" usebundle => mysql_ensure_db("homer_users", "$(homer_vars.sqldir)/homer_users.sql");
       "any" usebundle => homer_web_config;
@@ -30,6 +33,38 @@ bundle agent homer {
     homer_capture::
       "any" usebundle => homer_capture_config;
       "any" usebundle => homer_capture_running;
+}
+
+bundle agent homer_db_partion {
+  vars:
+    "script" string => "/usr/libexec/partrotate_unixtimestamp.pl";
+    "schedule" string => "0 $(sipx.homer_db_rotate_hour) * * *";
+    "cron_id" string => ".* $(script) .*";
+
+  classes:
+    "homer_db_rotate" expression => strcmp("1", "$(sipx.homer_db_rotate_enable)");
+
+  methods:
+    homer_db_rotate::
+      "any" usebundle => add_crontab("$(cron_id)", "$(sipx.SIPXPBXUSER)", "$(schedule) $(script)");
+
+    !homer_db_rotate::
+      "any" usebundle => remove_crontab("$(cron_id)", "$(sipx.SIPXPBXUSER)");
+
+  files:
+    homer_db_rotate::
+      "/etc/sysconfig/partrotaterc"
+        comment => "$(this.promiser)",
+	perms => mog("655", "root", "root"),
+	edit_defaults => empty,
+	edit_line => homer_db_rotate;
+}
+
+bundle edit_line homer_db_rotate {
+  insert_lines:
+"$mysql_user = 'root';
+$mysql_password = '';
+";
 }
 
 bundle agent homer_capture_config {
