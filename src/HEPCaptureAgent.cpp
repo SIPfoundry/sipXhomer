@@ -28,7 +28,7 @@ HEPCaptureAgent::HEPCaptureAgent(ServiceOptions& options, HEPDao& dao) :
   _dao(dao),
   _pRunThread(0)
 {
-  _pWatcher = new SQAWatcher("HEPCaptureAgent", "CAP", 1);
+  _pWatcher = new SQAWatcher("HEPCaptureAgent", "CAP", 1, SQA_CONN_READ_TIMEOUT, SQA_CONN_WRITE_TIMEOUT);
   OS_LOG_ERROR(FAC_NET, "HEPCaptureAgent CREATED");
 }
 
