@@ -32,6 +32,8 @@ bundle agent homer {
 
     homer_capture::
       "any" usebundle => homer_capture_config;
+
+    any::
       "any" usebundle => homer_capture_running;
 }
 
@@ -204,17 +206,17 @@ bundle agent homer_capture_running {
       "any" usebundle => rh_chkconfig_status("sipxhomer off");
       
   commands:
-    (!homer_capture|stop_sipxecs).homer_capture_running::
+    ((!homer_capture.!homer_web)|stop_sipxecs).homer_capture_running::
       "$(sipx.SIPX_SERVICEDIR)/sipxhomer"
         comment => "stop sipxhomer",
         args => "stop";
 
-    homer_capture.!homer_capture_running.!stop_sipxecs::
+    (homer_capture|homer_web).!homer_capture_running.!stop_sipxecs::
       "$(sipx.SIPX_SERVICEDIR)/sipxhomer"
         comment => "start sipxhomer",
         args => "start";
 
-    homer_capture.homer_capture_running.(restart_homer_capture|restart_sipxecs)::
+    (homer_capture|homer_web).homer_capture_running.(restart_homer_capture|restart_sipxecs)::
       "$(sipx.SIPX_SERVICEDIR)/sipxhomer"
         comment => "restart sipxhomer",
         args => "restart";
