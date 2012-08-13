@@ -23,9 +23,6 @@ bundle agent homer {
       "any" usebundle => mysql;
       "any" usebundle => mysql_ensure_db("homer_db", "$(homer_db)");
 
-    homer_web|homer_capture::
-      "any" usebundle => homer_db_partion;
-
     homer_web::
       "any" usebundle => mysql_ensure_db("homer_users", "$(homer_vars.sqldir)/homer_users.sql");
       "any" usebundle => homer_web_config;
@@ -34,6 +31,8 @@ bundle agent homer {
       "any" usebundle => homer_capture_config;
 
     any::
+      "any" usebundle => homer_db_partion;
+      "any" usebundle => homer_stats;
       "any" usebundle => homer_capture_running;
 }
 
@@ -44,7 +43,8 @@ bundle agent homer_db_partion {
     "cron_id" string => ".* $(script) .*";
 
   classes:
-    "homer_db_rotate" expression => strcmp("1", "$(sipx.homer_db_rotate_enable)");
+    any::
+      "homer_db_rotate" expression => "(homer_web|homer_capture).homer_db_rotate_enable";
 
   methods:
     homer_db_rotate::
@@ -57,15 +57,51 @@ bundle agent homer_db_partion {
     homer_db_rotate::
       "/etc/sysconfig/partrotaterc"
         comment => "$(this.promiser)",
-	perms => mog("655", "root", "root"),
-	edit_defaults => empty,
-	edit_line => homer_db_rotate;
+        create => "true",
+        perms => mog("655", "root", "root"),
+        edit_defaults => empty,
+        edit_line => homer_db_rotate;
 }
 
 bundle edit_line homer_db_rotate {
   insert_lines:
 "$mysql_user = 'root';
 $mysql_password = '';
+";
+}
+
+bundle agent homer_stats {
+  vars:
+    "script" string => "/usr/libexec/statistic.pl";
+    "schedule" string => "*/$(sipx.homer_db_stats_min) * * * *";
+    "cron_id" string => ".* $(script) 2>&1 > /dev/null .*";
+
+  classes:
+    any::
+      "homer_stats" expression => "(homer_web|homer_capture).homer_db_stats_enable";
+
+  methods:
+    homer_stats::
+      "any" usebundle => add_crontab("$(cron_id)", "$(sipx.SIPXPBXUSER)", "$(schedule) $(script)");
+
+    !homer_stats::
+      "any" usebundle => remove_crontab("$(cron_id)", "$(sipx.SIPXPBXUSER)");
+
+  files:
+    homer_stats::
+      "/etc/sysconfig/statisticrc"
+        comment => "$(this.promiser)",
+        create => "true",
+        perms => mog("655", "root", "root"),
+        edit_defaults => empty,
+        edit_line => homer_stats_rc;
+}
+
+bundle edit_line homer_stats_rc {
+  insert_lines:
+"$mysql_user = 'root';
+$mysql_password = '';
+$step = $(sipx.homer_db_stats_min) * 60;
 ";
 }
 
@@ -110,12 +146,12 @@ bundle agent homer_web_config {
 
       "$(homer_vars.tmpdir)/."
         create => "true",
-        perms => mog("755", "apache", "apache"); # TODO: try 700?
+        perms => mog("700", "apache", "apache");
 
       "$(homer_vars.wwwdir)/configuration.php"
         comment => "Homer configuration  $(this.promiser)",
         create => "true",
-        perms => mog("644", "apache", "apache"), # TODO: try 400
+        perms => mog("400", "apache", "apache"),
         edit_defaults => empty,
         edit_line => homer_web_configuration_php;
         
@@ -137,8 +173,16 @@ bundle agent homer_web_config {
       "$(homer_vars.wwwdir)/preferences.php"
         comment => "Homer configuration  $(this.promiser)",
         create => "false",
-        perms => mog("644", "apache", "apache"), # TODO: try 400
+        perms => mog("400", "apache", "apache"),
         edit_line => homer_web_preferences_php;        
+
+      # editing same file twice, but different type of variables
+      "$(homer_vars.wwwdir)/preferences.php"
+        comment => "Homer configuration php ini  $(this.promiser)",
+        create => "false",
+        perms => mog("400", "apache", "apache"),
+        edit_line => homer_web_php_ini;
+
 }
 
 # Editing isolated values can be replaced w/generating preferences from template once 
@@ -147,6 +191,7 @@ bundle edit_line homer_web_preferences_php {
   vars:
     "v[AUTHENTICATION]" string => "'$(sipx.homer_web_auth)'";
     "v[AUTHENTICATION_TEXT]" string => "'$(sipx.homer_web_auth_text)'";
+    "v[CFLOW_TIMEZONE]" string => "'$(sipx.homer_web_timezone)'";
 
     # based on following conversation w/lorenzo
     #  "this will enable auto-selection of callflow host or host:port display if there is 
@@ -161,6 +206,19 @@ bundle edit_line homer_web_preferences_php {
 
   delete_lines:
     "^\s*define\(\s*'$(k)'\s*,.*$";
+}
+
+bundle edit_line homer_web_php_ini {
+  vars:
+    "v[date.timezone]" string => "'$(sipx.homer_web_timezone)'";
+    "k" slist => getindices("v");
+
+  insert_lines:
+    "ini_set('$(k)',$(v[$(k)]));"
+       select_region => php_body;
+
+  delete_lines:
+    "^\s*ini_set\(\s*'$(k)'\s*,.*$";
 }
 
 body select_region php_body {

@@ -47,6 +47,12 @@
       </option>
     </enum>
   </type>
+  <type id="onOff">
+    <boolean>
+      <true><value>1</value></true>
+      <false><value>0</value></false>
+    </boolean>
+  </type>
   <group name="homer_capture">
     <setting name="log-level">
       <type refid="loglevel" />
@@ -59,21 +65,27 @@
       </type>
       <value>sipx</value>
     </setting>
+    <setting name="timezone">
+      <type><string/></type>      
+    </setting>
     <!--  Add more settings listed in preferences.php -->
   </group>
   <group name="homer_db">
     <setting name="rotate_enable">
-      <type>
-        <boolean>
-          <true><value>1</value></true>
-          <false><value>0</value></false>
-        </boolean>
-      </type>
+      <type refid="onOff"/>
       <value>1</value>
     </setting>
     <setting name="rotate_hour">
       <type><integer/></type>
       <value>0</value>
+    </setting>
+    <setting name="stats_enable">
+      <type refid="onOff"/>
+      <value>1</value>
+    </setting>
+    <setting name="stats_min">
+      <type><integer min="5" max="59"/></type>
+      <value>20</value>
     </setting>
   </group>
 </model>
