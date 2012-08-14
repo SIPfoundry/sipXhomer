@@ -55,7 +55,7 @@ public class HomerDbManager implements BeanFactoryAware, FeatureListener, PostCo
         String sipxSql = "select fqdn || '@' || ip_address from location l inner join feature_local f on l.location_id = f.location_id and f.feature_id = ?";
         List<String> sipxNodes = m_configJdbcTemplate.queryForList(sipxSql, String.class, ProxyManager.FEATURE.getId());
 
-        String homerSql = "select concat(name, '@', host) from homer_nodes";
+        String homerSql = "select concat(name, '@', host) from homer_hosts";
         JdbcTemplate homerDb = (JdbcTemplate) m_beanFactory.getBean("homerDb");
         List<String> homerNodes = homerDb.queryForList(homerSql, String.class);
                 
@@ -67,7 +67,7 @@ public class HomerDbManager implements BeanFactoryAware, FeatureListener, PostCo
         List<String> add = new ArrayList<String>();
         for (String missingNode : sipxNodes) {
             String[] decode  = StringUtils.split(missingNode, '@');
-            String sql = format("insert into homer_nodes (name, host, status) values ('%s', '%s', 1)", decode[0], decode[1]);
+            String sql = format("insert into homer_hosts (name, host, status) values ('%s', '%s', 1)", decode[0], decode[1]);
             add.add(sql);            
         }
         homerDb.batchUpdate(add.toArray(new String[0]));
