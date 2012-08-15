@@ -18,11 +18,11 @@ class HomerAuthentication extends Authentication {
           if (in_array(SIPX_ADMIN_PERM, $u['prm'])) {
               $_SESSION['loggedin'] = $username;
               $_SESSION['userlevel'] = 1;
+              return true;
           }
-          return true;
       }
 
-      return true;
+      return false;
     }
 }
 
