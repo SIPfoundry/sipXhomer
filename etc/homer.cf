@@ -93,10 +93,12 @@ bundle agent homer_stats {
 }
 
 bundle edit_line homer_stats_rc {
+  # UTC here matches UTC in mysql.cf
   insert_lines:
 "$mysql_user = 'root';
 $mysql_password = '';
 $step = $(sipx.homer_db_stats_min) * 60;
+$utc = 1;
 ";
 }
 
@@ -116,7 +118,8 @@ bundle edit_line homer_capture_config_contents {
   insert_lines:
     "$(sipx.SIPX_CFDATA)/$(sipx.location_id)/sipxhomer.ini.part"
     	insert_type => "file";
-	"db-url=DATABASE=homer_db;SERVER=localhost;UID=root;DRIVER=MySQL;READONLY=0;";
+    # Option flag is for auto-reconnect which is only safe if not using transactions
+	"db-url=DATABASE=homer_db;SERVER=localhost;UID=root;DRIVER=MySQL;READONLY=0;OPTION=4194304";
 }
 
 bundle agent homer_web_config {

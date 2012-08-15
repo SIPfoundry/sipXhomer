@@ -48,29 +48,51 @@ public class HomerDbManager implements BeanFactoryAware, FeatureListener, PostCo
     private JdbcTemplate m_configJdbcTemplate;
 
     /**
-     * Ensure each proxy is listed in homer's nodes table. 
+     * Ensure each proxy is listed in homer's hosts table. 
      * NOTE: Records in node table are not removed, it's unclear if an admin would want that --Douglas 
      */
     public void syncNodes() {        
+        // sync node info
         String sipxSql = "select fqdn || '@' || ip_address from location l inner join feature_local f on l.location_id = f.location_id and f.feature_id = ?";
-        List<String> sipxNodes = m_configJdbcTemplate.queryForList(sipxSql, String.class, ProxyManager.FEATURE.getId());
+        List<String> sipxHosts = m_configJdbcTemplate.queryForList(sipxSql, String.class, ProxyManager.FEATURE.getId());
 
         String homerSql = "select concat(name, '@', host) from homer_hosts";
         JdbcTemplate homerDb = (JdbcTemplate) m_beanFactory.getBean("homerDb");
-        List<String> homerNodes = homerDb.queryForList(homerSql, String.class);
+        List<String> homerHosts = homerDb.queryForList(homerSql, String.class);
                 
-        sipxNodes.removeAll(homerNodes);
-        if (sipxNodes.isEmpty()) {
-            return;
+        sipxHosts.removeAll(homerHosts);
+        if (!sipxHosts.isEmpty()) {                
+            List<String> add = new ArrayList<String>();
+            for (String missingNode : sipxHosts) {
+                String[] decode  = StringUtils.split(missingNode, '@');
+                String sql = format("insert into homer_hosts (name, host, status) values ('%s', '%s', 1)", decode[0], decode[1]);
+                add.add(sql);            
+            }
+            homerDb.batchUpdate(add.toArray(new String[0]));
         }
-                
-        List<String> add = new ArrayList<String>();
-        for (String missingNode : sipxNodes) {
-            String[] decode  = StringUtils.split(missingNode, '@');
-            String sql = format("insert into homer_hosts (name, host, status) values ('%s', '%s', 1)", decode[0], decode[1]);
-            add.add(sql);            
+        
+        // sync db info
+        String dbhost = "127.0.0.1";
+        int dbport = 3306;
+        String dbname = "homer_db";
+        String dbuser = "root";
+        String dbpass = "";
+        String dbtables = "sip_capture";
+        String name = "local";
+        int status = 1;        
+        // must have lowest ID to ensure it's the default node for statistics
+        String nodeSql = "select 1 from homer_nodes where host = ? and dbport = ? and dbname = ? and dbpassword = ? "
+                + "and dbusername = ? and dbtables = ? and name = ? and status = ? and id = 1";
+        List<Integer> found = homerDb.queryForList(nodeSql, Integer.class, dbhost, dbport, dbname, dbpass, dbuser,
+                dbtables, name, status);
+        if (found.size() == 0) {
+            String[] hosts = new String[2];
+            hosts[0] = "delete from homer_nodes";
+            String addNode = "insert into homer_nodes (id, host, dbport, dbname, dbpassword, dbusername, dbtables, name, status) "
+                    + "values (1, '%s',%d,'%s','%s','%s','%s','%s','%d')";
+            hosts[1] = format(addNode, dbhost, dbport, dbname, dbpass, dbuser, dbtables, name, status);
+            homerDb.batchUpdate(hosts);
         }
-        homerDb.batchUpdate(add.toArray(new String[0]));
     }
     
     @Override
@@ -117,5 +139,9 @@ public class HomerDbManager implements BeanFactoryAware, FeatureListener, PostCo
                     "$(sipx.SIPX_SERVICEDIR)/sipxhomer restore %s"));
         }
         return null;
+    }
+
+    @Override
+    public void replicate(ConfigManager manager, ConfigRequest request) throws IOException {
     }
 }
