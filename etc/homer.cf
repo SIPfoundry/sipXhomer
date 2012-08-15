@@ -93,12 +93,10 @@ bundle agent homer_stats {
 }
 
 bundle edit_line homer_stats_rc {
-  # UTC here matches UTC in mysql.cf
   insert_lines:
 "$mysql_user = 'root';
 $mysql_password = '';
 $step = $(sipx.homer_db_stats_min) * 60;
-$utc = 1;
 ";
 }
 
