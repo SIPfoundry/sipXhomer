@@ -12,16 +12,11 @@ bundle common homer_vars {
 }
 
 bundle agent homer {
-  vars:
-    "homer_db" slist => {
-        "$(homer_vars.sqldir)/create_sipcapture.sql",
-        "$(homer_vars.sqldir)/statistics.sql"
-    };
-
   methods:
     homer_web|homer_capture::
       "any" usebundle => mysql;
-      "any" usebundle => mysql_ensure_db("homer_db", "$(homer_db)");
+      "any" usebundle => mysql_ensure_db("homer_db", "$(homer_vars.sqldir)/create_sipcapture.sql");
+      "any" usebundle => mysql_ensure_table("homer_db", "stats_method", "$(homer_vars.sqldir)/statistics.sql");
 
     homer_web::
       "any" usebundle => mysql_ensure_db("homer_users", "$(homer_vars.sqldir)/homer_users.sql");
@@ -121,7 +116,8 @@ bundle edit_line homer_capture_config_contents {
   insert_lines:
     "$(sipx.SIPX_CFDATA)/$(sipx.location_id)/sipxhomer.ini.part"
     	insert_type => "file";
-	"db-url=DATABASE=homer_db;SERVER=localhost;UID=root;DRIVER=MySQL;READONLY=0;";
+    # Option flag is for auto-reconnect which is only safe if not using transactions
+	"db-url=DATABASE=homer_db;SERVER=localhost;UID=root;DRIVER=MySQL;READONLY=0;OPTION=4194304";
 }
 
 bundle agent homer_web_config {

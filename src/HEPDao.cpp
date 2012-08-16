@@ -155,16 +155,19 @@ void HEPDao::save(StateQueueMessage& object)
   now.tv_sec = timeStamp;
   now.tv_usec = timeStampMicroOffset;
   time_t timeNow = now.tv_sec;
-  struct tm* gmt = gmtime (&timeNow);
+
+  // gmt is ideal, but cannot be gmt because homer does not expect it as such
+  // unfortunately that means change system tz means times become wrong.
+  struct tm* ltime = localtime (&timeNow);
 
   // date
   TIMESTAMP_STRUCT date;
-  date.year = gmt->tm_year + 1900;
-  date.month = gmt->tm_mon + 1;
-  date.day = gmt->tm_mday;
-  date.hour = gmt->tm_hour;
-  date.minute = gmt->tm_min;
-  date.second = gmt->tm_sec;
+  date.year = ltime->tm_year + 1900;
+  date.month = ltime->tm_mon + 1;
+  date.day = ltime->tm_mday;
+  date.hour = ltime->tm_hour;
+  date.minute = ltime->tm_min;
+  date.second = ltime->tm_sec;
   date.fraction = 0;
   bind(DATE, &date, sizeof(date));
 
