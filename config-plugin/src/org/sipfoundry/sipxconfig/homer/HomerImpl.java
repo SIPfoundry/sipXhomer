@@ -103,7 +103,7 @@ public class HomerImpl implements Homer, FeatureProvider, ProcessProvider {
             return null;
         }
         
-        ProcessDefinition def = ProcessDefinition.sipxDefault("sipxhomer");
+        ProcessDefinition def = ProcessDefinition.sipx("sipxhomer");
         return Collections.singleton(def);
     }
 }

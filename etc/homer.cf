@@ -28,7 +28,7 @@ bundle agent homer {
     any::
       "any" usebundle => homer_db_partion;
       "any" usebundle => homer_stats;
-      "any" usebundle => homer_capture_running;
+      "any" usebundle => sipxhomer_running;
 }
 
 bundle agent homer_db_partion {
@@ -109,7 +109,7 @@ bundle agent homer_capture_config {
       perms => mog("600","$(sipx.SIPXPBXUSER)","$(sipx.SIPXPBXGROUP)"),
       edit_defaults => empty,
       edit_line => homer_capture_config_contents,
-      classes => if_repaired("restart_homer_capture");
+      classes => if_repaired("restart_sipxhomer");
 }
 
 bundle edit_line homer_capture_config_contents {
@@ -246,31 +246,31 @@ include(\"preferences.php\");
 ?>";
 }
 
-bundle agent homer_capture_running {
+bundle agent sipxhomer_running {
   vars:
     any::
       "service_command" string => "$(sipx.SIPX_LIBEXECDIR)/sipxhomer";
 
   methods:
     any::
-      "any" usebundle => find_sipxservice_by_command("$(service_command)","homer_capture_running");
+      "any" usebundle => find_sipxservice_by_command("$(service_command)","sipxhomer_running");
     !src.homer_capture::
       "any" usebundle => rh_chkconfig_status("sipxhomer on");
     !src.!homer_capture::
       "any" usebundle => rh_chkconfig_status("sipxhomer off");
       
   commands:
-    ((!homer_capture.!homer_web)|stop_sipxecs).homer_capture_running::
+    ((!homer_capture.!homer_web)|stop_sipxecs).sipxhomer_running::
       "$(sipx.SIPX_SERVICEDIR)/sipxhomer"
         comment => "stop sipxhomer",
         args => "stop";
 
-    (homer_capture|homer_web).!homer_capture_running.!stop_sipxecs::
+    (homer_capture|homer_web).!sipxhomer_running.!stop_sipxecs::
       "$(sipx.SIPX_SERVICEDIR)/sipxhomer"
         comment => "start sipxhomer",
         args => "start";
 
-    (homer_capture|homer_web).homer_capture_running.(restart_homer_capture|restart_sipxecs)::
+    (homer_capture|homer_web).sipxhomer_running.(restart_sipxhomer|restart_sipxecs)::
       "$(sipx.SIPX_SERVICEDIR)/sipxhomer"
         comment => "restart sipxhomer",
         args => "restart";
