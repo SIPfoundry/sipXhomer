@@ -90,6 +90,7 @@ public class HomerImpl implements Homer, FeatureProvider, ProcessProvider {
         // just so we don't have to configure capture to connected to remote mysql server
         validator.requiredOnSameHost(FEATURE_CAPTURE_SERVER, FEATURE_WEB);
         validator.requiredOnSameHost(FEATURE_CAPTURE_SERVER, MySql.FEATURE);
+        validator.requiredOnSameHost(FEATURE_WEB, MySql.FEATURE);
     }
 
     @Override
