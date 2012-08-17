@@ -14,6 +14,7 @@
 #include <sstream>
 #include <boost/throw_exception.hpp>
 #include <boost/algorithm/string.hpp>
+#include <boost/lexical_cast.hpp>
 #include <resip/stack/SipMessage.hxx>
 #include "sipxhomer/HEPDao.h"
 #include "sipxhomer/HEPMessage.h"
@@ -176,72 +177,33 @@ void HEPDao::save(StateQueueMessage& object)
 
 
   // method
-  std::string cseqMethod;
-  if (msg->exists(h_CSeq))
+
+  //
+  // Note: homer method is not the transaction method.  For requests, it is the
+  // actual method.  For responses it is the reason code.
+  //
+  if (msg->isRequest())
   {
-    switch(msg->const_header(h_CSeq).method())
+     bind(METHOD, (void *) msg->methodStr().data(), msg->methodStr().size());
+  }
+  else
+  {
+    try
     {
-    case ACK:
-      cseqMethod = "ACK";
-      break;
-    case BYE:
-      cseqMethod = "BYE";
-      break;
-    case CANCEL:
-      cseqMethod = "CANCEL";
-      break;
-    case INVITE:
-      cseqMethod = "INVITE";
-      break;
-    case NOTIFY:
-      cseqMethod = "NOTIFY";
-      break;
-    case OPTIONS:
-      cseqMethod = "OPTIONS";
-      break;
-    case REFER:
-      cseqMethod = "REFER";
-      break;
-    case REGISTER:
-      cseqMethod = "REGISTER";
-      break;
-    case SUBSCRIBE:
-      cseqMethod = "SUBSCRIBE";
-      break;
-    case MESSAGE:
-      cseqMethod = "MESSAGE";
-      break;
-    case INFO:
-      cseqMethod = "INFO";
-      break;
-    case PRACK:
-      cseqMethod = "PRACK";
-      break;
-    case PUBLISH:
-      cseqMethod = "PUBLISH";
-      break;
-    case SERVICE:
-      cseqMethod = "SERVICE";
-      break;
-    case UPDATE:
-      cseqMethod = "UPDATE";
-      break;
-    default:
-      cseqMethod = "????";
-      break;
+      std::string statusCode = boost::lexical_cast<std::string>(msg->const_header(h_StatusLine).statusCode());
+      bind(METHOD, (void *) statusCode.data(), statusCode.size());
     }
-    bind(METHOD, (void *) cseqMethod.data(), cseqMethod.length());
+    catch(...)
+    {
+    }
   }
 
   if (!msg->isRequest())
   {
-    // reply_reason
+    // reply_reason -  This is the reason phrase for response
     std::string reply_reason;
-    if (msg->exists(h_Reasons))
-    {
-      reply_reason = msg->const_header(h_Reasons).front().value().c_str();
-      bind(REPLY_REASON, (void *) reply_reason.data(), reply_reason.length());
-    }
+    reply_reason = msg->const_header(h_StatusLine).reason().data();
+    bind(REPLY_REASON, (void *) reply_reason.data(), reply_reason.length());
   }
 
   std::string requestLine;
@@ -262,7 +224,7 @@ void HEPDao::save(StateQueueMessage& object)
     requestUriUser = msg->const_header(h_RequestLine).uri().user().c_str();
     bind(REQUESTURI_USER, (void *) requestUriUser.data(), requestUriUser.length());
 
-    OS_LOG_INFO(FAC_NET, "HEPDao::save " << direction << ": " << cseqMethod << " "
+    OS_LOG_INFO(FAC_NET, "HEPDao::save " << direction << ": " << msg->methodStr().data() << " "
             << ip4SrcAddress << ":" << srcPort << "->"
             << ip4DestAddress << ":" << destPort );
   }
@@ -379,7 +341,7 @@ void HEPDao::save(StateQueueMessage& object)
     //
     // Get the protocol string to be used for determining the transport type
     //
-    viaProtocol = frontVia.protocolName().data();
+    viaProtocol = frontVia.transport().data();
     boost::to_upper(viaProtocol);
   }
 
@@ -396,16 +358,15 @@ void HEPDao::save(StateQueueMessage& object)
 
   // diversion
 
-  if (msg->isRequest())
+
+  // reason
+  std::string reason;
+  if (msg->exists(h_Reasons))
   {
-    // reason
-    std::string reason;
-    if (msg->exists(h_Reasons))
-    {
-      reason = msg->const_header(h_Reasons).front().value().c_str();
-      bind(REPLY_REASON, (void *) reason.data(), reason.length());
-    }
+    reason = msg->const_header(h_Reasons).front().value().c_str();
+    bind(REPLY_REASON, (void *) reason.data(), reason.length());
   }
+
 
   // content_type
   std::string contentType;
