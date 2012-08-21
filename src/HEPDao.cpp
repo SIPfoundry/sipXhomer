@@ -182,6 +182,7 @@ void HEPDao::save(StateQueueMessage& object)
   // Note: homer method is not the transaction method.  For requests, it is the
   // actual method.  For responses it is the reason code.
   //
+  std::string statusCode;
   if (msg->isRequest())
   {
      bind(METHOD, (void *) msg->methodStr().data(), msg->methodStr().size());
@@ -190,7 +191,7 @@ void HEPDao::save(StateQueueMessage& object)
   {
     try
     {
-      std::string statusCode = boost::lexical_cast<std::string>(msg->const_header(h_StatusLine).statusCode());
+      statusCode = boost::lexical_cast<std::string>(msg->const_header(h_StatusLine).responseCode());
       bind(METHOD, (void *) statusCode.data(), statusCode.size());
     }
     catch(...)
@@ -198,11 +199,11 @@ void HEPDao::save(StateQueueMessage& object)
     }
   }
 
+  std::string reply_reason;
   if (!msg->isRequest())
   {
     // reply_reason -  This is the reason phrase for response
-    std::string reply_reason;
-    reply_reason = msg->const_header(h_StatusLine).reason().data();
+    reply_reason = msg->const_header(h_StatusLine).reason().c_str();
     bind(REPLY_REASON, (void *) reply_reason.data(), reply_reason.length());
   }
 
