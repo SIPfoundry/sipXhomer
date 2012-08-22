@@ -68,11 +68,12 @@
   </bean>  
 
   <bean id="homerDb" class="org.springframework.jdbc.core.JdbcTemplate" scope="prototype">
-    <property name="dataSource" ref="homerDataSource" />
+    <property name="dataSource" ref="homerDataSource" />    
   </bean>
 
   <bean id="homerDbManager" class="org.sipfoundry.sipxconfig.homer.HomerDbManager">
     <property name="configJdbcTemplate" ref="configJdbcTemplate"/>
+    <property name="featureManager" ref="featureManager"/>
   </bean>
   
 </beans>

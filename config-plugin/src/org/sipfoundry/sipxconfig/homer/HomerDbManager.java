@@ -37,6 +37,7 @@ import org.sipfoundry.sipxconfig.feature.FeatureChangeRequest;
 import org.sipfoundry.sipxconfig.feature.FeatureChangeValidator;
 import org.sipfoundry.sipxconfig.feature.FeatureListener;
 import org.sipfoundry.sipxconfig.feature.FeatureManager;
+import org.sipfoundry.sipxconfig.mysql.MySql;
 import org.sipfoundry.sipxconfig.proxy.ProxyManager;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.BeanFactoryAware;
@@ -46,12 +47,16 @@ import org.springframework.jdbc.core.JdbcTemplate;
 public class HomerDbManager implements BeanFactoryAware, FeatureListener, PostConfigListener, ArchiveProvider {
     private ListableBeanFactory m_beanFactory;
     private JdbcTemplate m_configJdbcTemplate;
+    private FeatureManager m_featureManager;
 
     /**
      * Ensure each proxy is listed in homer's hosts table. 
      * NOTE: Records in node table are not removed, it's unclear if an admin would want that --Douglas 
      */
-    public void syncNodes() {        
+    public void syncNodes() {
+        if (!m_featureManager.isFeatureEnabled(MySql.FEATURE)) {
+            return;
+        }
         // sync node info
         String sipxSql = "select fqdn || '@' || ip_address from location l inner join feature_local f on l.location_id = f.location_id and f.feature_id = ?";
         List<String> sipxHosts = m_configJdbcTemplate.queryForList(sipxSql, String.class, ProxyManager.FEATURE.getId());
@@ -143,5 +148,9 @@ public class HomerDbManager implements BeanFactoryAware, FeatureListener, PostCo
 
     @Override
     public void replicate(ConfigManager manager, ConfigRequest request) throws IOException {
+    }
+
+    public void setFeatureManager(FeatureManager featureManager) {
+        m_featureManager = featureManager;
     }
 }
