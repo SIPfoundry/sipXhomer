@@ -70,7 +70,16 @@ public class HomerDbManager implements BeanFactoryAware, FeatureListener, PostCo
             List<String> add = new ArrayList<String>();
             for (String missingNode : sipxHosts) {
                 String[] decode  = StringUtils.split(missingNode, '@');
-                String sql = format("insert into homer_hosts (name, host, status) values ('%s', '%s', 1)", decode[0], decode[1]);
+                String name = decode[0];
+                String host = decode[1];
+                String checkHostSql = "select count(0) from homer_hosts where host = ?";
+                boolean hostExists = homerDb.queryForInt(checkHostSql, host) > 0;
+                String sql;
+                if (hostExists) {
+                    sql = format("update homer_hosts set name='%s' where host='%s'", name, host);
+                } else {
+                    sql = format("insert into homer_hosts (name, host, status) values ('%s', '%s', 1)", name, host);
+                }
                 add.add(sql);            
             }
             homerDb.batchUpdate(add.toArray(new String[0]));
