@@ -71,7 +71,7 @@ void HEPCaptureAgent::internalRun()
       }
       catch(std::exception& error)
       {
-        OS_LOG_INFO(FAC_NET, "HEPCaptureAgent::internalRun ERROR: " << error.what());
+        OS_LOG_ERROR(FAC_NET, "HEPCaptureAgent::internalRun ERROR: " << error.what());
       }
       delete pEvent;
     }
