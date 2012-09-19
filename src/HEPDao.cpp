@@ -24,7 +24,7 @@ using namespace resip;
 
 
 HEPDao::HEPDao() {
-  std::fill_n(mType, sizeof(mType), SQL_C_CHAR);
+  std::fill_n(mType, _NUM_FIELDS, SQL_C_CHAR);
   mType[DATE] = SQL_C_TIMESTAMP;
   mType[MICRO_TS] = SQL_C_SBIGINT;
 
@@ -40,13 +40,28 @@ HEPDao::HEPDao() {
 
 HEPDao::~HEPDao()
 {
+    close();
+}
+
+void HEPDao::close()
+{
     SQLFreeHandle(SQL_HANDLE_ENV, mEnv);
     SQLFreeHandle(SQL_HANDLE_ENV, mConn);
     SQLFreeHandle(SQL_HANDLE_STMT, mInsert);
 }
 
+void HEPDao::reconnect()
+{
+  OS_LOG_INFO(FAC_NET, "HEPDao::reconnection attempt");
+  close();
+  connect(connectionUrl);
+}
+
 void HEPDao::connect(std::string& connection)
 {
+
+    lastConnectionAttempt = boost::posix_time::second_clock::local_time();
+    connectionUrl = connection;
     SQLRETURN err;
     err = SQLAllocHandle(SQL_HANDLE_ENV, SQL_NULL_HANDLE, &mEnv);
     checkError(err, mEnv, SQL_HANDLE_ENV);
@@ -57,7 +72,7 @@ void HEPDao::connect(std::string& connection)
     err = SQLAllocHandle(SQL_HANDLE_DBC, mEnv, &mConn);
     checkError(err, mConn, SQL_HANDLE_DBC);
 
-    err = SQLDriverConnect(mConn, NULL, (SQLCHAR*) connection.c_str(), SQL_NTS, NULL, 0, NULL,
+    err = SQLDriverConnect(mConn, NULL, (SQLCHAR*) connectionUrl.c_str(), SQL_NTS, NULL, 0, NULL,
             SQL_DRIVER_NOPROMPT);
     checkError(err, mConn, SQL_HANDLE_DBC);
 
@@ -85,7 +100,7 @@ void HEPDao::connect(std::string& connection)
     SQLPrepare(mInsert, (SQLCHAR *)insertSql, len);
     checkError(err, mInsert, SQL_HANDLE_STMT);
 
-    OS_LOG_INFO(FAC_NET, "HEPDao::connect " << connection << " SUCCEEDED.");
+    OS_LOG_INFO(FAC_NET, "HEPDao::connect " << connectionUrl << " SUCCEEDED.");
 }
 
 
@@ -528,7 +543,26 @@ void HEPDao::checkError(SQLRETURN err, SQLHANDLE handle, SQLSMALLINT type)
         ret = SQLGetDiagRec(type, handle, 1, state, &native, text, sizeof(text), &len);
         if (SQL_SUCCEEDED(ret))
         {
-            throw HEPDaoException((char *) text);
+  	  // XX-?? ODBC driver will not reconnect if mysql is restarted on CentOS 6 despite using 
+  	  //  ..;OPTION=4194304.  Seems to work on Fedora 16 though. 
+	  // 
+	  // Here we're attempting to reconnect with throttle so we do not flood system.
+	  //  
+          OS_LOG_INFO(FAC_NET, "HEPDao::mysql error " << native);
+
+	  // For error codes, see
+	  //   http://dev.mysql.com/doc/refman/5.0/en/error-messages-client.html
+	  if (native >= 2001 && native <= 2006) {
+
+            OS_LOG_INFO(FAC_NET, "HEPDao::mysql down");
+	    boost::posix_time::ptime now  = boost::posix_time::second_clock::local_time();
+	    boost::posix_time::time_duration diff = now - lastConnectionAttempt;
+	    // reconnect every 5 seconds seems reasonable default
+	    if (diff.total_seconds() > 5) {
+	      reconnect();
+	    }	    
+	  }
+	  throw HEPDaoException((char *) text);
         }
         else
         {

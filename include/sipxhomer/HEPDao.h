@@ -18,6 +18,7 @@
 #include <sqlext.h>
 #include <resip/stack/SipMessage.hxx>
 #include "sqa/sqaclient.h"
+#include "boost/date_time/posix_time/posix_time_types.hpp"
 
 struct HEPDaoException : std::exception
 {
@@ -97,8 +98,13 @@ private:
     SQLHSTMT mInsert;
     SQLSMALLINT mType[_NUM_FIELDS];
     int mFieldIndex;
+    std::string connectionUrl;
+    boost::posix_time::ptime lastConnectionAttempt;
+
     void checkError(SQLRETURN err, SQLHANDLE handle, SQLSMALLINT type);
     void bind(Capture c, void *data, int len);
+    void close();
+    void reconnect();
     SQLSMALLINT sqlType(SQLSMALLINT t);
     SQLLEN* sqlLen(SQLSMALLINT t, void *data);
 };
