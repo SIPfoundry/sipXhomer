@@ -24,7 +24,7 @@ using namespace resip;
 
 
 HEPDao::HEPDao() {
-  std::fill_n(mType, _NUM_FIELDS, SQL_C_CHAR);
+  std::fill_n(mType, (int) _NUM_FIELDS, SQL_C_CHAR);
   mType[DATE] = SQL_C_TIMESTAMP;
   mType[MICRO_TS] = SQL_C_SBIGINT;
 
