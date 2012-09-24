@@ -45,21 +45,43 @@ HEPDao::~HEPDao()
 
 void HEPDao::close()
 {
-    SQLFreeHandle(SQL_HANDLE_ENV, mEnv);
-    SQLFreeHandle(SQL_HANDLE_ENV, mConn);
-    SQLFreeHandle(SQL_HANDLE_STMT, mInsert);
+    if (mInsert) {
+      SQLFreeHandle(SQL_HANDLE_STMT, mInsert);
+      mInsert = NULL;
+    }
+    if (mConn) {
+      SQLFreeHandle(SQL_HANDLE_ENV, mConn);
+      mConn = NULL;
+    }
+    if (mEnv) {
+      SQLFreeHandle(SQL_HANDLE_ENV, mEnv);
+      mEnv = NULL;
+    }
+}
+
+void HEPDao::checkConnection()
+{
+  if (mInsert == NULL) {
+    reconnect();
+  }
 }
 
 void HEPDao::reconnect()
 {
-  OS_LOG_INFO(FAC_NET, "HEPDao::reconnection attempt");
-  close();
-  connect(connectionUrl);
+  OS_LOG_INFO(FAC_NET, "HEPDao::mysql down");
+  boost::posix_time::ptime now  = boost::posix_time::second_clock::local_time();
+  boost::posix_time::time_duration diff = now - lastConnectionAttempt;
+  // reconnect every 5 seconds seems reasonable default
+  if (diff.total_seconds() > 5) {
+    OS_LOG_INFO(FAC_NET, "HEPDao::reconnection attempt");
+    close();
+    connect(connectionUrl);
+  }	    
+  throw HEPDaoException("Too many reconnection attempts in 5 second period.");
 }
 
 void HEPDao::connect(std::string& connection)
 {
-
     lastConnectionAttempt = boost::posix_time::second_clock::local_time();
     connectionUrl = connection;
     SQLRETURN err;
@@ -162,8 +184,11 @@ void HEPDao::save(StateQueueMessage& object)
     return;
   }
 
+  checkConnection();
+
   SQLRETURN err = SQLFreeStmt(mInsert, SQL_UNBIND);
   checkError(err, mInsert, SQL_HANDLE_STMT);
+  
   mFieldIndex = 0;
 
   struct timeval now;
@@ -553,14 +578,7 @@ void HEPDao::checkError(SQLRETURN err, SQLHANDLE handle, SQLSMALLINT type)
 	  // For error codes, see
 	  //   http://dev.mysql.com/doc/refman/5.0/en/error-messages-client.html
 	  if (native >= 2001 && native <= 2006) {
-
-            OS_LOG_INFO(FAC_NET, "HEPDao::mysql down");
-	    boost::posix_time::ptime now  = boost::posix_time::second_clock::local_time();
-	    boost::posix_time::time_duration diff = now - lastConnectionAttempt;
-	    // reconnect every 5 seconds seems reasonable default
-	    if (diff.total_seconds() > 5) {
-	      reconnect();
-	    }	    
+	    reconnect();
 	  }
 	  throw HEPDaoException((char *) text);
         }

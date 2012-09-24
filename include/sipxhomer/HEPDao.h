@@ -105,6 +105,7 @@ private:
     void bind(Capture c, void *data, int len);
     void close();
     void reconnect();
+    void checkConnection();
     SQLSMALLINT sqlType(SQLSMALLINT t);
     SQLLEN* sqlLen(SQLSMALLINT t, void *data);
 };
