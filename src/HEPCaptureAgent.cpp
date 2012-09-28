@@ -60,9 +60,9 @@ void HEPCaptureAgent::internalRun()
     {
       if (strcmp(pEvent->id, SQA_TERMINATE_STRING) == 0)
         break;
+      std::string buff = std::string(pEvent->data, pEvent->data_len);
       try
       {
-        std::string buff = std::string(pEvent->data, pEvent->data_len);
         StateQueueMessage object;
         if (object.parseData(buff))
           _dao.save(object);
@@ -71,7 +71,9 @@ void HEPCaptureAgent::internalRun()
       }
       catch(std::exception& error)
       {
-        OS_LOG_ERROR(FAC_NET, "HEPCaptureAgent::internalRun ERROR: " << error.what());
+        OS_LOG_ERROR(FAC_NET, "HEPCaptureAgent::internalRun ERROR: " << error.what()
+		     << " msg: " << buff);
+	
       }
       delete pEvent;
     }

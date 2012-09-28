@@ -211,6 +211,7 @@ void HEPDao::save(StateQueueMessage& object)
   date.fraction = 0;
   bind(DATE, &date, sizeof(date));
 
+
   // micro_ts
   unsigned long long microTs = (unsigned long long)now.tv_sec*1000000+now.tv_usec;
   bind(MICRO_TS, &microTs, sizeof(unsigned long long));
@@ -499,7 +500,11 @@ void HEPDao::bind(Capture c, void *data, int len) {
   static const char* blank = "";
 
   if (mFieldIndex > c) {
-    throw HEPDaoException("Programming error, binding columns out of order");
+      std::stringstream msgstr;
+      msgstr << "Programming error attemptng to bind column " <<  c
+          << " after previous column " << mFieldIndex;
+      std::string msg = msgstr.str();
+      throw HEPDaoException(msg.c_str());
   }
 
   // null fields up to  col
