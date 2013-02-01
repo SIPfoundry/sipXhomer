@@ -93,9 +93,11 @@ private:
 
       _NUM_FIELDS
     };
+
     SQLHENV mEnv;
     SQLHDBC mConn;
     SQLHSTMT mInsert;
+
     SQLSMALLINT mType[_NUM_FIELDS];
     int mFieldIndex;
     std::string connectionUrl;
@@ -103,6 +105,7 @@ private:
 
     void checkError(SQLRETURN err, SQLHANDLE handle, SQLSMALLINT type);
     void bind(Capture c, void *data, int len);
+    void doBind(Capture c, void *data, int len);
     void close();
     void reconnect();
     void checkConnection();
