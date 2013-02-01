@@ -59,7 +59,11 @@ void HEPCaptureAgent::internalRun()
     if (pEvent)
     {
       if (strcmp(pEvent->id, SQA_TERMINATE_STRING) == 0)
+      {
+        delete pEvent;
         break;
+      }
+
       std::string buff = std::string(pEvent->data, pEvent->data_len);
       try
       {
@@ -75,6 +79,7 @@ void HEPCaptureAgent::internalRun()
 		     << " msg: " << buff);
 	
       }
+
       delete pEvent;
     }
     else

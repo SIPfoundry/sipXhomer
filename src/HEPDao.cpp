@@ -19,12 +19,16 @@
 #include "sipxhomer/HEPDao.h"
 #include "sipxhomer/HEPMessage.h"
 
-
 using namespace resip;
 
+static const char *g_emptyChar = "";
+static TIMESTAMP_STRUCT g_emptyDate = {0, 0, 0, 0, 0, 0, 0};
+static unsigned long long g_emptyMicroTs = 0;
+static int g_emptyInt = 0;
 
 HEPDao::HEPDao() {
   std::fill_n(mType, (int) _NUM_FIELDS, SQL_C_CHAR);
+
   mType[DATE] = SQL_C_TIMESTAMP;
   mType[MICRO_TS] = SQL_C_SBIGINT;
 
@@ -36,6 +40,12 @@ HEPDao::HEPDao() {
   mType[PROTO] = SQL_C_LONG;
   mType[FAMILY] = SQL_C_LONG;
   mType[TYPE] = SQL_C_LONG;
+
+  mEnv = NULL;
+  mConn = NULL;
+  mInsert = NULL;
+
+  mFieldIndex = 0;
 }
 
 HEPDao::~HEPDao()
@@ -49,10 +59,14 @@ void HEPDao::close()
       SQLFreeHandle(SQL_HANDLE_STMT, mInsert);
       mInsert = NULL;
     }
+
     if (mConn) {
-      SQLFreeHandle(SQL_HANDLE_ENV, mConn);
+      SQLDisconnect(mConn);
+
+      SQLFreeHandle(SQL_HANDLE_DBC, mConn);
       mConn = NULL;
     }
+
     if (mEnv) {
       SQLFreeHandle(SQL_HANDLE_ENV, mEnv);
       mEnv = NULL;
@@ -213,9 +227,8 @@ void HEPDao::save(StateQueueMessage& object)
 
 
   // micro_ts
-  unsigned long long microTs = (unsigned long long)now.tv_sec*1000000+now.tv_usec;
-  bind(MICRO_TS, &microTs, sizeof(unsigned long long));
-
+  unsigned long long microTs = (unsigned long long)now.tv_sec*1000000 + now.tv_usec;
+  bind(MICRO_TS, (void*)&microTs, sizeof(unsigned long long));
 
   // method
 
@@ -323,7 +336,7 @@ void HEPDao::save(StateQueueMessage& object)
   std::string contactUser;
   std::string contactHost;
   int contactPort = 0;
-  if (msg->exists(h_Contacts))
+  if (msg->exists(h_Contacts) && !msg->const_header(h_Contacts).empty())
   {
     // contact_user
     contactUser = msg->const_header(h_Contacts).front().uri().user().c_str();
@@ -383,7 +396,7 @@ void HEPDao::save(StateQueueMessage& object)
     //
     // Get the protocol string to be used for determining the transport type
     //
-    viaProtocol = frontVia.transport().data();
+    viaProtocol = frontVia.transport().c_str();
     boost::to_upper(viaProtocol);
   }
 
@@ -403,10 +416,10 @@ void HEPDao::save(StateQueueMessage& object)
 
   // reason
   std::string reason;
-  if (msg->exists(h_Reasons))
+  if (msg->exists(h_Reasons) && !msg->const_header(h_Reasons).empty())
   {
     reason = msg->const_header(h_Reasons).front().value().c_str();
-    bind(REPLY_REASON, (void *) reason.data(), reason.length());
+    bind(REASON, (void *) reason.data(), reason.length());
   }
 
 
@@ -481,7 +494,7 @@ void HEPDao::save(StateQueueMessage& object)
   // rtp_stat
 
   // type
-  int protocolType = HEPMessage::SipX;
+  int protocolType = HEPMessage::SIP;
   bind(TYPE, (void*)&protocolType, sizeof(protocolType));
   // node
 
@@ -497,11 +510,10 @@ void HEPDao::save(StateQueueMessage& object)
 }
 
 void HEPDao::bind(Capture c, void *data, int len) {
-  static const char* blank = "";
 
   if (mFieldIndex > c) {
       std::stringstream msgstr;
-      msgstr << "Programming error attemptng to bind column " <<  c
+      msgstr << "Programming error attempting to bind column " <<  c
           << " after previous column " << mFieldIndex;
       std::string msg = msgstr.str();
       throw HEPDaoException(msg.c_str());
@@ -514,22 +526,49 @@ void HEPDao::bind(Capture c, void *data, int len) {
     // if you have an exception call explicitly for field
     //    bind(FIELD_ID, NULL, 0);
     //
-    void *nil = (mType[mFieldIndex] == SQL_C_CHAR ? (void *)blank : NULL);
-    bind((Capture) mFieldIndex, nil, 0);
+
+	  void *nil = (void*)g_emptyChar;
+	  int nilLen = 0;
+	  switch (mType[mFieldIndex])
+	  {
+	  case SQL_C_TIMESTAMP:
+		  nil = (void*)&g_emptyDate;
+		  nilLen = sizeof(TIMESTAMP_STRUCT);
+		  break;
+
+	  case SQL_C_SBIGINT:
+		  nil = (void*)&g_emptyMicroTs;
+		  nilLen = sizeof(unsigned long long);
+		  break;
+	  case SQL_C_LONG:
+		  nil = (void*)&g_emptyInt;
+		  nilLen = sizeof(SQLINTEGER);
+		  break;
+	  default:
+		  break;
+	  }
+
+    doBind((Capture) mFieldIndex, nil, nilLen);
   }
 
+  doBind(c, data, len);
+}
+
+void HEPDao::doBind(Capture c, void *data, int len) {
   SQLSMALLINT cType = mType[c];
+
   SQLLEN* indicator = sqlLen(cType, data);
   SQLRETURN err = SQLBindParameter(mInsert, mFieldIndex + 1, SQL_PARAM_INPUT, cType, sqlType(cType), len, 0, data, 0, indicator);
   checkError(err, mInsert, SQL_HANDLE_STMT);
   mFieldIndex++;
 }
 
+
 SQLLEN* HEPDao::sqlLen(SQLSMALLINT cType, void *data) {
   static SQLLEN ntsLen = SQL_NTS;
   static SQLLEN nilLen = SQL_NULL_DATA;
-  static SQLLEN intLen = 32;
-  static SQLLEN bigIntLen = 64;
+  static SQLLEN intLen = sizeof(SQLINTEGER);
+  static SQLLEN bigIntLen = sizeof(unsigned long long);
   static SQLLEN timestampLen = sizeof(TIMESTAMP_STRUCT);
 
   if (data == NULL) {
@@ -556,7 +595,7 @@ SQLSMALLINT HEPDao::sqlType(SQLSMALLINT cType) {
   case SQL_C_TIMESTAMP:
     return SQL_TIMESTAMP;
   default:
-    return SQL_CHAR;
+    return SQL_LONGVARCHAR;
   }
 }
 
