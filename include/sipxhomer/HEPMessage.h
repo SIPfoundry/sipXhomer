@@ -52,16 +52,18 @@ public:
     MaxType
   };
   
+
   enum ProtocolId
   {
-      TCP = 6,
-      UDP = 17,
+      NONE = 0,
+      UDP = 1,
+      TCP = 2,
   };
   
   enum ProtocolFamily
   {
       IpV4 = 2,
-      IpV6 = 6
+      IpV6 = 10,
   };
   
   enum ProtocolType
@@ -73,6 +75,11 @@ public:
       SIGTRAN
   };
 
+  enum SIPMessageType
+  {
+      SIP_REQUEST = 1,
+      SIP_REPLY = 2
+  };
 
 
   HEPMessage();

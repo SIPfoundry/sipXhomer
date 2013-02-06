@@ -192,6 +192,10 @@ void HEPDao::save(StateQueueMessage& object)
   if (!msg)
     return;
 
+  // NOTE: This check is not reliable as malformed messages will pass.
+  // WARNING: It is prefered to store malformed messages and not to ignore
+  // them as they may provide clues. For some malformed messages the Homer Web UI
+  // becomes unresponsive but the message can still be viewed in the db.
   if (msg->isInvalid())
   {
     delete msg;
@@ -237,12 +241,14 @@ void HEPDao::save(StateQueueMessage& object)
   // actual method.  For responses it is the reason code.
   //
   std::string statusCode;
+  int messageType = HEPMessage::SIP_REQUEST;
   if (msg->isRequest())
   {
      bind(METHOD, (void *) msg->methodStr().data(), msg->methodStr().size());
   }
   else
   {
+    messageType = HEPMessage::SIP_REPLY;
     try
     {
       statusCode = boost::lexical_cast<std::string>(msg->const_header(h_StatusLine).responseCode());
@@ -494,8 +500,7 @@ void HEPDao::save(StateQueueMessage& object)
   // rtp_stat
 
   // type
-  int protocolType = HEPMessage::SIP;
-  bind(TYPE, (void*)&protocolType, sizeof(protocolType));
+  bind(TYPE, (void*)&messageType, sizeof(messageType));
   // node
 
   // NOTE: Need to always bind last column or you get SQL unbound cols error
