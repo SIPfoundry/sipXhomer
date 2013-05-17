@@ -202,314 +202,323 @@ void HEPDao::save(StateQueueMessage& object)
     return;
   }
 
-  checkConnection();
-
-  SQLRETURN err = SQLFreeStmt(mInsert, SQL_UNBIND);
-  checkError(err, mInsert, SQL_HANDLE_STMT);
-  
-  mFieldIndex = 0;
-
-  struct timeval now;
-  now.tv_sec = timeStamp;
-  now.tv_usec = timeStampMicroOffset;
-  time_t timeNow = now.tv_sec;
-
-  // gmt is ideal, but cannot be gmt because homer does not expect it as such
-  // unfortunately that means change system tz means times become wrong.
-  struct tm* ltime = localtime (&timeNow);
-
-  // date
-  TIMESTAMP_STRUCT date;
-  date.year = ltime->tm_year + 1900;
-  date.month = ltime->tm_mon + 1;
-  date.day = ltime->tm_mday;
-  date.hour = ltime->tm_hour;
-  date.minute = ltime->tm_min;
-  date.second = ltime->tm_sec;
-  date.fraction = 0;
-  bind(DATE, &date, sizeof(date));
-
-
-  // micro_ts
-  unsigned long long microTs = (unsigned long long)now.tv_sec*1000000 + now.tv_usec;
-  bind(MICRO_TS, (void*)&microTs, sizeof(unsigned long long));
-
-  // method
-
-  //
-  // Note: homer method is not the transaction method.  For requests, it is the
-  // actual method.  For responses it is the reason code.
-  //
-  std::string statusCode;
-  int messageType = HEPMessage::SIP_REQUEST;
-  if (msg->isRequest())
+  try
   {
-     bind(METHOD, (void *) msg->methodStr().data(), msg->methodStr().size());
-  }
-  else
-  {
-    messageType = HEPMessage::SIP_REPLY;
-    try
+    checkConnection();
+
+    SQLRETURN err = SQLFreeStmt(mInsert, SQL_UNBIND);
+    checkError(err, mInsert, SQL_HANDLE_STMT);
+
+    mFieldIndex = 0;
+
+    struct timeval now;
+    now.tv_sec = timeStamp;
+    now.tv_usec = timeStampMicroOffset;
+    time_t timeNow = now.tv_sec;
+
+    // gmt is ideal, but cannot be gmt because homer does not expect it as such
+    // unfortunately that means change system tz means times become wrong.
+    struct tm* ltime = localtime (&timeNow);
+
+    // date
+    TIMESTAMP_STRUCT date;
+    date.year = ltime->tm_year + 1900;
+    date.month = ltime->tm_mon + 1;
+    date.day = ltime->tm_mday;
+    date.hour = ltime->tm_hour;
+    date.minute = ltime->tm_min;
+    date.second = ltime->tm_sec;
+    date.fraction = 0;
+    bind(DATE, &date, sizeof(date));
+
+
+    // micro_ts
+    unsigned long long microTs = (unsigned long long)now.tv_sec*1000000 + now.tv_usec;
+    bind(MICRO_TS, (void*)&microTs, sizeof(unsigned long long));
+
+    // method
+
+    //
+    // Note: homer method is not the transaction method.  For requests, it is the
+    // actual method.  For responses it is the reason code.
+    //
+    std::string statusCode;
+    int messageType = HEPMessage::SIP_REQUEST;
+    if (msg->isRequest())
     {
-      statusCode = boost::lexical_cast<std::string>(msg->const_header(h_StatusLine).responseCode());
-      bind(METHOD, (void *) statusCode.data(), statusCode.size());
+       bind(METHOD, (void *) msg->methodStr().data(), msg->methodStr().size());
     }
-    catch(...)
-    {
-    }
-  }
-
-  std::string reply_reason;
-  if (!msg->isRequest())
-  {
-    // reply_reason -  This is the reason phrase for response
-    reply_reason = msg->const_header(h_StatusLine).reason().c_str();
-    bind(REPLY_REASON, (void *) reply_reason.data(), reply_reason.length());
-  }
-
-  std::string requestLine;
-  std::string statusLine;
-  std::string requestUriUser;
-
-  const char* direction = outgoing ? "Outgoing" : "Incoming";
-
-  if (msg->isRequest())
-  {
-    // ruri
-    std::ostringstream strm;
-    msg->const_header(h_RequestLine).uri().encode(strm);
-    requestLine = strm.str();
-    bind(REQUESTURI, (void *) requestLine.data(), requestLine.length());
-
-    // ruri_user
-    requestUriUser = msg->const_header(h_RequestLine).uri().user().c_str();
-    bind(REQUESTURI_USER, (void *) requestUriUser.data(), requestUriUser.length());
-
-    OS_LOG_INFO(FAC_NET, "HEPDao::save " << direction << ": " << msg->methodStr().data() << " "
-            << ip4SrcAddress << ":" << srcPort << "->"
-            << ip4DestAddress << ":" << destPort );
-  }
-  else
-  {
-    std::ostringstream strm;
-    msg->const_header(h_StatusLine).encode(strm);
-    statusLine = strm.str();  // where does this go
-    OS_LOG_INFO(FAC_NET, "HEPDao::save " << direction << ": " << statusLine << " "
-            << ip4SrcAddress << ":" << srcPort << "->"
-            << ip4DestAddress << ":" << destPort);
-  }
-
-  OS_LOG_DEBUG(FAC_NET, "HEPDao::save SIP Message " << data.c_str());
-
-  std::string fromTag;
-  std::string fromUser;
-  if (msg->exists(h_From))
-  {
-    // from_user
-    fromUser = msg->const_header(h_From).uri().user().c_str();
-    bind(FROM_USER, (void *) fromUser.data(), fromUser.length());
-
-    // from_tag
-    fromTag = msg->const_header(h_From).exists(p_tag) ? msg->const_header(h_From).param(p_tag).c_str()
-        : std::string();
-    bind(FROM_TAG, (void *) fromTag.data(), fromTag.length());
-  }
-
-  std::string toTag;
-  std::string toUser;
-  if (msg->exists(h_To))
-  {
-    // to_user
-    toUser = msg->const_header(h_To).uri().user().c_str();
-    bind(TO_USER, (void *) toUser.data(), toUser.length());
-
-    // to_tag
-    toTag = msg->const_header(h_To).exists(p_tag) ? msg->const_header(h_To).param(p_tag).c_str()
-        : std::string();
-    bind(TO_TAG, (void *) toTag.data(), toTag.length());
-  }
-
-  // pid_user
-  std::string pidentity;
-  if (msg->exists(h_PAssertedIdentities))
-  {
-    std::ostringstream pidStrm;
-    msg->const_header(h_PAssertedIdentities).front().uri().encode(pidStrm);
-    pidentity = pidStrm.str();
-    bind(PID_USER, (void *) pidentity.data(), pidentity.length());
-  }
-
-  std::string contactUser;
-  std::string contactHost;
-  int contactPort = 0;
-  if (msg->exists(h_Contacts) && !msg->const_header(h_Contacts).empty())
-  {
-    // contact_user
-    contactUser = msg->const_header(h_Contacts).front().uri().user().c_str();
-    bind(CONTACT_USER, (void *) contactUser.data(), contactUser.length());
-
-    //contact_ip
-    contactHost = msg->const_header(h_Contacts).front().uri().host().c_str();
-    bind(CONTACT_IP, (void *) contactHost.data(), contactHost.length());
-
-    //contact_port
-    contactPort = msg->const_header(h_Contacts).front().uri().port();
-    bind(CONTACT_PORT, (void *) &contactPort, sizeof(contactPort));
-  }
-  else
-  {
-    //
-    // There is no contact but homer requires it cant be null
-    //
-    // contact_user
-    bind(CONTACT_USER, (void *) contactUser.data(), contactUser.length());
-    //contact_ip
-    bind(CONTACT_IP, (void *) contactHost.data(), contactHost.length());
-    //contact_port
-    bind(CONTACT_PORT, (void *) &contactPort, sizeof(contactPort));
-  }
-
-  // auth_user
-
-  // callid
-  std::string callId;
-  if (msg->exists(h_CallID))
-  {
-    callId = msg->const_header(h_CallID).value().c_str();
-    bind(CALL_ID, (void *) callId.data(), callId.length());
-  }
-
-  // callid_aleg
-
-  std::string viaBranch;
-  std::string via;
-  std::string viaProtocol;
-  if (msg->exists(h_Vias))
-  {
-    // via_1
-    Via& frontVia = msg->header(h_Vias).front();
-    std::ostringstream viaStrm;
-    frontVia.encode(viaStrm);
-    via = viaStrm.str();
-    bind(VIA_1, (void *) via.data(), via.length());
-
-    // via_1_branch
-    if (frontVia.param(p_branch).hasMagicCookie())
-      viaBranch = "z9hG4bK";
-    viaBranch += frontVia.param(p_branch).getTransactionId().c_str();
-    bind(VIA_1_BRANCH, (void *) viaBranch.data(), viaBranch.length());
-
-    //
-    // Get the protocol string to be used for determining the transport type
-    //
-    viaProtocol = frontVia.transport().c_str();
-    boost::to_upper(viaProtocol);
-  }
-
-
-  // cseq
-  std::string cseq;
-  std::ostringstream cseqStrm;
-  if (msg->exists(h_CSeq))
-  {
-    msg->const_header(h_CSeq).encode(cseqStrm);
-    cseq = cseqStrm.str();
-    bind(CSEQ, (void *) cseq.data(), cseq.length());
-  }
-
-  // diversion
-
-
-  // reason
-  std::string reason;
-  if (msg->exists(h_Reasons) && !msg->const_header(h_Reasons).empty())
-  {
-    reason = msg->const_header(h_Reasons).front().value().c_str();
-    bind(REASON, (void *) reason.data(), reason.length());
-  }
-
-
-  // content_type
-  std::string contentType;
-  if (msg->exists(h_ContentType))
-  {
-    std::ostringstream ctypeStrm;
-    msg->const_header(h_ContentType).encode(ctypeStrm);
-    contentType = ctypeStrm.str();
-    bind(CONTENT_TYPE, (void *) contentType.data(), contentType.length());
-  }
-
-  // authorization
-  std::string authorization;
-  if (msg->exists(h_Authorizations))
-  {
-    std::ostringstream authStrm;
-    msg->const_header(h_Authorizations).front().encode(authStrm);
-    authorization = authStrm.str();
-    bind(AUTH, (void *) authorization.data(), authorization.length());
-  }
-  else if (msg->exists(h_ProxyAuthorizations))
-  {
-    std::ostringstream authStrm;
-    msg->const_header(h_ProxyAuthorizations).front().encode(authStrm);
-    authorization = authStrm.str();
-    bind(AUTH, (void *) authorization.data(), authorization.length());
-  }
-
-  // user_agent
-  std::string userAgent;
-  if (msg->exists(h_UserAgent))
-  {
-    userAgent = msg->const_header(h_UserAgent).value().c_str();
-    bind(USER_AGENT, (void *) userAgent.data(), userAgent.length());
-  }
-
-  // source_ip
-  bind(SOURCE_IP, (void *) ip4SrcAddress.c_str(), ip4SrcAddress.length());
-
-  // source_port
-  bind(SOURCE_PORT, (void*)&srcPort, sizeof(srcPort));
-
-  // destination_ip
-  bind(DEST_IP, (void *) ip4DestAddress.c_str(), ip4DestAddress.length());
-
-  // destination_port
-  bind(DEST_PORT, (void*)&destPort, sizeof(destPort));
-
-  // originator_ip
-
-  // originator_port
-  int zero = 0;
-  bind(ORIGINATOR_PORT, (void*)&zero, sizeof(zero));
-
-  // proto
-  if (!viaProtocol.empty())
-  {
-    if (viaProtocol == "TCP")
-      ipProtoId = HEPMessage::TCP;
     else
-      ipProtoId= HEPMessage::UDP;
+    {
+      messageType = HEPMessage::SIP_REPLY;
+      try
+      {
+        statusCode = boost::lexical_cast<std::string>(msg->const_header(h_StatusLine).responseCode());
+        bind(METHOD, (void *) statusCode.data(), statusCode.size());
+      }
+      catch(...)
+      {
+      }
+    }
+
+    std::string reply_reason;
+    if (!msg->isRequest())
+    {
+      // reply_reason -  This is the reason phrase for response
+      reply_reason = msg->const_header(h_StatusLine).reason().c_str();
+      bind(REPLY_REASON, (void *) reply_reason.data(), reply_reason.length());
+    }
+
+    std::string requestLine;
+    std::string statusLine;
+    std::string requestUriUser;
+
+    const char* direction = outgoing ? "Outgoing" : "Incoming";
+
+    if (msg->isRequest())
+    {
+      // ruri
+      std::ostringstream strm;
+      msg->const_header(h_RequestLine).uri().encode(strm);
+      requestLine = strm.str();
+      bind(REQUESTURI, (void *) requestLine.data(), requestLine.length());
+
+      // ruri_user
+      requestUriUser = msg->const_header(h_RequestLine).uri().user().c_str();
+      bind(REQUESTURI_USER, (void *) requestUriUser.data(), requestUriUser.length());
+
+      OS_LOG_INFO(FAC_NET, "HEPDao::save " << direction << ": " << msg->methodStr().data() << " "
+              << ip4SrcAddress << ":" << srcPort << "->"
+              << ip4DestAddress << ":" << destPort );
+    }
+    else
+    {
+      std::ostringstream strm;
+      msg->const_header(h_StatusLine).encode(strm);
+      statusLine = strm.str();  // where does this go
+      OS_LOG_INFO(FAC_NET, "HEPDao::save " << direction << ": " << statusLine << " "
+              << ip4SrcAddress << ":" << srcPort << "->"
+              << ip4DestAddress << ":" << destPort);
+    }
+
+    OS_LOG_DEBUG(FAC_NET, "HEPDao::save SIP Message " << data.c_str());
+
+    std::string fromTag;
+    std::string fromUser;
+    if (msg->exists(h_From))
+    {
+      // from_user
+      fromUser = msg->const_header(h_From).uri().user().c_str();
+      bind(FROM_USER, (void *) fromUser.data(), fromUser.length());
+
+      // from_tag
+      fromTag = msg->const_header(h_From).exists(p_tag) ? msg->const_header(h_From).param(p_tag).c_str()
+          : std::string();
+      bind(FROM_TAG, (void *) fromTag.data(), fromTag.length());
+    }
+
+    std::string toTag;
+    std::string toUser;
+    if (msg->exists(h_To))
+    {
+      // to_user
+      toUser = msg->const_header(h_To).uri().user().c_str();
+      bind(TO_USER, (void *) toUser.data(), toUser.length());
+
+      // to_tag
+      toTag = msg->const_header(h_To).exists(p_tag) ? msg->const_header(h_To).param(p_tag).c_str()
+          : std::string();
+      bind(TO_TAG, (void *) toTag.data(), toTag.length());
+    }
+
+    // pid_user
+    std::string pidentity;
+    if (msg->exists(h_PAssertedIdentities))
+    {
+      std::ostringstream pidStrm;
+      msg->const_header(h_PAssertedIdentities).front().uri().encode(pidStrm);
+      pidentity = pidStrm.str();
+      bind(PID_USER, (void *) pidentity.data(), pidentity.length());
+    }
+
+    std::string contactUser;
+    std::string contactHost;
+    int contactPort = 0;
+    if (msg->exists(h_Contacts) && !msg->const_header(h_Contacts).empty())
+    {
+      // contact_user
+      contactUser = msg->const_header(h_Contacts).front().uri().user().c_str();
+      bind(CONTACT_USER, (void *) contactUser.data(), contactUser.length());
+
+      //contact_ip
+      contactHost = msg->const_header(h_Contacts).front().uri().host().c_str();
+      bind(CONTACT_IP, (void *) contactHost.data(), contactHost.length());
+
+      //contact_port
+      contactPort = msg->const_header(h_Contacts).front().uri().port();
+      bind(CONTACT_PORT, (void *) &contactPort, sizeof(contactPort));
+    }
+    else
+    {
+      //
+      // There is no contact but homer requires it cant be null
+      //
+      // contact_user
+      bind(CONTACT_USER, (void *) contactUser.data(), contactUser.length());
+      //contact_ip
+      bind(CONTACT_IP, (void *) contactHost.data(), contactHost.length());
+      //contact_port
+      bind(CONTACT_PORT, (void *) &contactPort, sizeof(contactPort));
+    }
+
+    // auth_user
+
+    // callid
+    std::string callId;
+    if (msg->exists(h_CallID))
+    {
+      callId = msg->const_header(h_CallID).value().c_str();
+      bind(CALL_ID, (void *) callId.data(), callId.length());
+    }
+
+    // callid_aleg
+
+    std::string viaBranch;
+    std::string via;
+    std::string viaProtocol;
+    if (msg->exists(h_Vias))
+    {
+      // via_1
+      Via& frontVia = msg->header(h_Vias).front();
+      std::ostringstream viaStrm;
+      frontVia.encode(viaStrm);
+      via = viaStrm.str();
+      bind(VIA_1, (void *) via.data(), via.length());
+
+      // via_1_branch
+      if (frontVia.param(p_branch).hasMagicCookie())
+        viaBranch = "z9hG4bK";
+      viaBranch += frontVia.param(p_branch).getTransactionId().c_str();
+      bind(VIA_1_BRANCH, (void *) viaBranch.data(), viaBranch.length());
+
+      //
+      // Get the protocol string to be used for determining the transport type
+      //
+      viaProtocol = frontVia.transport().c_str();
+      boost::to_upper(viaProtocol);
+    }
+
+
+    // cseq
+    std::string cseq;
+    std::ostringstream cseqStrm;
+    if (msg->exists(h_CSeq))
+    {
+      msg->const_header(h_CSeq).encode(cseqStrm);
+      cseq = cseqStrm.str();
+      bind(CSEQ, (void *) cseq.data(), cseq.length());
+    }
+
+    // diversion
+
+
+    // reason
+    std::string reason;
+    if (msg->exists(h_Reasons) && !msg->const_header(h_Reasons).empty())
+    {
+      reason = msg->const_header(h_Reasons).front().value().c_str();
+      bind(REASON, (void *) reason.data(), reason.length());
+    }
+
+
+    // content_type
+    std::string contentType;
+    if (msg->exists(h_ContentType))
+    {
+      std::ostringstream ctypeStrm;
+      msg->const_header(h_ContentType).encode(ctypeStrm);
+      contentType = ctypeStrm.str();
+      bind(CONTENT_TYPE, (void *) contentType.data(), contentType.length());
+    }
+
+    // authorization
+    std::string authorization;
+    if (msg->exists(h_Authorizations))
+    {
+      std::ostringstream authStrm;
+      msg->const_header(h_Authorizations).front().encode(authStrm);
+      authorization = authStrm.str();
+      bind(AUTH, (void *) authorization.data(), authorization.length());
+    }
+    else if (msg->exists(h_ProxyAuthorizations))
+    {
+      std::ostringstream authStrm;
+      msg->const_header(h_ProxyAuthorizations).front().encode(authStrm);
+      authorization = authStrm.str();
+      bind(AUTH, (void *) authorization.data(), authorization.length());
+    }
+
+    // user_agent
+    std::string userAgent;
+    if (msg->exists(h_UserAgent))
+    {
+      userAgent = msg->const_header(h_UserAgent).value().c_str();
+      bind(USER_AGENT, (void *) userAgent.data(), userAgent.length());
+    }
+
+    // source_ip
+    bind(SOURCE_IP, (void *) ip4SrcAddress.c_str(), ip4SrcAddress.length());
+
+    // source_port
+    bind(SOURCE_PORT, (void*)&srcPort, sizeof(srcPort));
+
+    // destination_ip
+    bind(DEST_IP, (void *) ip4DestAddress.c_str(), ip4DestAddress.length());
+
+    // destination_port
+    bind(DEST_PORT, (void*)&destPort, sizeof(destPort));
+
+    // originator_ip
+
+    // originator_port
+    int zero = 0;
+    bind(ORIGINATOR_PORT, (void*)&zero, sizeof(zero));
+
+    // proto
+    if (!viaProtocol.empty())
+    {
+      if (viaProtocol == "TCP")
+        ipProtoId = HEPMessage::TCP;
+      else
+        ipProtoId= HEPMessage::UDP;
+    }
+    bind(PROTO, (void*)&ipProtoId, sizeof(ipProtoId));
+
+    // family
+    // only field in schema allowed to be NULL
+    int protoFamily = HEPMessage::IpV4;
+    bind(FAMILY, (void*)&protoFamily, sizeof(protoFamily));
+
+    // rtp_stat
+
+    // type
+    bind(TYPE, (void*)&messageType, sizeof(messageType));
+    // node
+
+    // NOTE: Need to always bind last column or you get SQL unbound cols error
+
+    // msg
+    bind(MSG, (void *) data.c_str(), data.length());
+
+    err = SQLExecute(mInsert);
+    checkError(err, mInsert, SQL_HANDLE_STMT);
   }
-  bind(PROTO, (void*)&ipProtoId, sizeof(ipProtoId));
-
-  // family
-  // only field in schema allowed to be NULL
-  int protoFamily = HEPMessage::IpV4;
-  bind(FAMILY, (void*)&protoFamily, sizeof(protoFamily));
-
-  // rtp_stat
-
-  // type
-  bind(TYPE, (void*)&messageType, sizeof(messageType));
-  // node
-
-  // NOTE: Need to always bind last column or you get SQL unbound cols error
-
-  // msg
-  bind(MSG, (void *) data.c_str(), data.length());
-
-  err = SQLExecute(mInsert);
-  checkError(err, mInsert, SQL_HANDLE_STMT);
+  catch(const std::exception& e)
+  {
+    OS_LOG_ERROR(FAC_NET, "HEPDao::save Exception: " << e.what());
+    delete msg;
+    throw e;
+  }
 
   delete msg;
 }
