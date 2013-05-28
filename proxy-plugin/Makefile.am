@@ -28,9 +28,8 @@ libsipXhomerProxyPlugin_la_LDFLAGS = \
     -version-info ${version_Current}:${version_Revision}:${version_Age}
 
 libsipXhomerProxyPlugin_la_LIBADD = \
-	-lsqaclient \
-	-lzmq \
 	-lmongoclient \
 	-lboost_system-mt \
 	@SIPXPORT_LIBS@ \
-	@SIPXCOMMSERVER_LIBS@
+	@SIPXCOMMSERVER_LIBS@ \
+	@SIPXSQA_LIBS@
