@@ -22,7 +22,8 @@ sipxhomer_LDADD = \
 	-lmongoclient \
 	@ODBC_LDFLAGS@ \
 	@SIPXPORT_LIBS@ \
-	@SIPXCOMMSERVER_LIBS@
+	@SIPXCOMMSERVER_LIBS@ \
+	@SIPXSQA_LIBS@
 
 
 sipxhomer_LDFLAGS = \

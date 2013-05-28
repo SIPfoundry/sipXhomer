@@ -14,6 +14,7 @@ AX_COMPILER_VENDOR
 SFAC_INIT_FLAGS
 SFAC_LIB_PORT
 SFAC_LIB_COMMSERVER
+SFAC_LIB_SQA
 CHECK_ODBC
 m4_include([config/java.m4])
 m4_include([config/java2.m4])
