@@ -273,7 +273,7 @@ bundle agent sipxhomer_running {
     (homer_capture|homer_web).sipxhomer_running.(restart_sipxhomer|restart_sipxecs)::
       "$(sipx.SIPX_SERVICEDIR)/sipxhomer"
         comment => "restart sipxhomer",
-        args => "restart";
+        args => "asyncrestart";
 }
 
 

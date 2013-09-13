@@ -9,8 +9,8 @@
 # Contributors retain copyright to elements licensed under a Contributor Agreement.
 # Licensed to the User under the LGPL license.
 
-. /etc/rc.d/init.d/functions || exit 1
-. @SIPX_LIBEXECDIR@/sipx-utils.sh || exit 1
+. /etc/rc.d/init.d/functions || exit $ENOENT
+. @SIPX_LIBEXECDIR@/sipx-utils.sh || { echo_failure; echo; exit $ENOENT; }
 
 prog=sipxhomer
 exec="@SIPX_LIBEXECDIR@/${prog}"
@@ -21,15 +21,33 @@ SIPXHOMER_OPTS="--log-file @SIPX_LOGDIR@/sipxhomer.log --config-file $SIPXHOMER_
 [ -e @SIPX_CONFDIR@/sysconfig/$prog ] && . @SIPX_CONFDIR@/sysconfig/$prog
 
 start() {
-    [ -x $exec ] || exit 5
-    [ -f $config ] || exit 6
+    [ -x $exec ] || { echo -n "$execError"; echo_failure; echo; exit $ENOEXEC; }
+    [ -f $config ] || { echo -n "$invalidFileError"; echo_failure; echo; exit $ENOENT; }
     if [ -n "${NoFork}" ] ; then
+      killAnyOrphans @SIPXPBXUSER@ $prog
       runuser - @SIPXPBXUSER@ -c "$exec $SIPXHOMER_OPTS"
     else
+      checkRunningInstance @SIPXPBXUSER@ $prog > /dev/null
+      Status=$?
+      [ $Status -eq 0 ] && { echo -n "$prog $runningError"; echo_failure; echo; exit $ERUNNING; }
+
       echo -n $"Starting $prog: "
       daemon --user @SIPXPBXUSER@ --pidfile $pidfile $exec $SIPXHOMER_OPTS --daemonize
       Status=$?
-      echo_success
+
+      if [ $# -gt 0 ]; then
+        #check if process spawned
+        checkRunningInstanceTimeout @SIPXPBXUSER@ $prog
+        Status=$?
+        [ $Status -eq 0 ] || { echo_failure; echo; exit $ESRCH; }
+        checkIfListening $prog
+        Status=$?
+        [ $Status -eq 0 ] || { echo_failure; echo; exit $ENOSCKT; }
+        [ $Status -eq 0 ] && { echo_success; echo; }
+      else
+        [ $Status -eq 0 ] && { echo_success; echo; }
+        [ $Status -eq 0 ] || { echo_failure; echo; }
+      fi
     fi
 }
 
@@ -37,19 +55,25 @@ stop() {
   echo -n $"Stopping sipxhomer: "
   # can take a while to shutdown because of relay
   # dont wait too long as service availability is in jeopardy
-  killproc -p "${pidfile}" -d 10 "${exec}"
+  killproc -d 10 "${exec}"
   Status=$?
   echo
   [ $Status -eq 0 ] && rm -f "${pidfile}"
+  killAnyOrphans @SIPXPBXUSER@ $prog
 }
 
 restart() {
+  stop
+  start $withCheck
+}
+
+asyncrestart() {
   stop
   start
 }
 
 backup() {
-  for db in homer_db homer_users; do 
+  for db in homer_db homer_users; do
     mysqldump -u root ${db} > @SIPX_TMPDIR@/${db}.sql
   done
   tar -C @SIPX_TMPDIR@ -cvzf $1 homer_db.sql homer_users.sql
@@ -61,15 +85,15 @@ restore() {
   if [ "$running" = "yes" ] ; then
     stop
   fi
-  
-  for db in homer_db homer_users; do 
+
+  for db in homer_db homer_users; do
     mysql -u root -e "drop database if exists ${db}; create database ${db};"
     tar -xzf $1 -O ${db}.sql | mysql -u root ${db}
   done
 
   if [ "$running" = "yes" ] ; then
     start
-  fi  
+  fi
 }
 
 case "$1" in
@@ -80,7 +104,9 @@ case "$1" in
   start)
     start
     ;;
-      
+  asyncrestart)
+    asyncrestart
+    ;;
   stop)
     stop
     ;;
@@ -91,7 +117,7 @@ case "$1" in
     [ -f ${pidfile} ] && restart || :
     ;;
   status)
-    status -p "${pidfile}" "${prog}"
+    checkRunningInstance @SIPXPBXUSER@ $prog
     Status=$?
     ;;
   configtest)
@@ -104,9 +130,9 @@ case "$1" in
   restore)
     shift
     restore $1
-    ;;    
+    ;;
   *)
-    echo "Usage: $0 {start|stop|status|restart|reload|force-reload|condrestart|nofork|backup filename|restore filename}"
+    echo "Usage: $0 {start|stop|status|restart|asyncrestart|reload|force-reload|condrestart|nofork|backup filename|restore filename}"
     Status=1
 esac
 
