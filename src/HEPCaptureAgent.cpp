@@ -13,7 +13,7 @@
 
 #include <net/NetBase64Codec.h>
 #include "os/OsLogger.h"
-#include "sqa/ServiceOptions.h"
+#include <os/OsServiceOptions.h>
 #include "sqa/sqaclient.h"
 #include <boost/date_time.hpp>
 #include "sipxhomer/HEPCaptureAgent.h"
@@ -22,7 +22,7 @@
 
 using namespace resip;
 
-HEPCaptureAgent::HEPCaptureAgent(ServiceOptions& options, HEPDao& dao) :
+HEPCaptureAgent::HEPCaptureAgent(OsServiceOptions& options, HEPDao& dao) :
   _options(options),
   _pWatcher(0),
   _dao(dao),

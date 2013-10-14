@@ -14,7 +14,7 @@
 #ifndef HEPCAPTUREAGENT_H
 #define	HEPCAPTUREAGENT_H
 
-#include "sqa/ServiceOptions.h"
+#include "os/OsServiceOptions.h"
 #include "sqa/sqaclient.h"
 #include "sipxhomer/HEPMessage.h"
 #include <resip/stack/SipMessage.hxx>
@@ -24,14 +24,14 @@
 class HEPCaptureAgent
 {
 public:
-  HEPCaptureAgent(ServiceOptions& options, HEPDao& dao);
+  HEPCaptureAgent(OsServiceOptions& options, HEPDao& dao);
   ~HEPCaptureAgent();
   void run();
   void stop();
-  ServiceOptions& options();
+  OsServiceOptions& options();
 private:
   void internalRun();
-  ServiceOptions& _options;
+  OsServiceOptions& _options;
   SQAWatcher* _pWatcher;
   HEPDao& _dao;
   bool _isRunning;
@@ -43,7 +43,7 @@ private:
 // Inlines
 //
 
-inline ServiceOptions& HEPCaptureAgent::options()
+inline OsServiceOptions& HEPCaptureAgent::options()
 {
   return _options;
 }

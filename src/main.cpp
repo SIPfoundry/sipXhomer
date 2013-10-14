@@ -12,35 +12,58 @@
 // details.
 
 #include "sipxhomer/HEPMessage.h"
-#include "sqa/ServiceOptions.h"
 #include "sipxhomer/HEPCaptureAgent.h"
 #include "sipxhomer/HEPTestDriver.h"
 
 #include "resip/stack/SipMessage.hxx"
 
+#include <sipXecsService/SipXApplication.h>
+
 using namespace std;
+
+#define SIPXHOMER_APP_NAME              "sipxhomer"
 
 int main(int argc , char** argv)
 {
-  ServiceOptions::daemonize(argc, argv);
-
-  ServiceOptions service(argc, argv, "sipxhomer");
-  service.addDaemonOptions();
-
-  if (!service.parseOptions())
+  SipXApplicationData homerData =
   {
-    service.displayUsage(std::cerr);
+      SIPXHOMER_APP_NAME,
+      "",
+      "",
+      "",
+      "",
+      "1.0",
+      "Ezuce Inc. All Rights Reserved",
+      false, // do not check mongo connection
+      true, // increase application file descriptor limits
+      SipXApplicationData::CmdLineOptDefaults, // command line default options: parse command line and show version and help
+      SipXApplicationData::ConfigFileFormatIni, // format type for configuration file
+      SipXApplicationData::DaemonizeInitTypeOsServiceOptions,// Daemonize type service options
+#ifdef SERVICE_NO_LOGGER
+      SipXApplicationData::LoggerInitTypeNone,               // No logger
+#else
+      SipXApplicationData::LoggerInitTypeOsServiceOptions,   // Logger init type service options
+#endif
+      OsMsgQShared::QUEUE_LIMITED, //limited queue
+  };
+
+  SipXApplication& sipXApplication = SipXApplication::instance();
+  OsServiceOptions& osServiceOptions = sipXApplication.getConfig();
+
+  if (!sipXApplication.init(argc, argv, homerData))
+  {
+    sipXApplication.displayUsage(std::cerr);
     return -1;
   }
   else
   {
     string dbUrl;
-    service.getOption("db-url", dbUrl);
+    osServiceOptions.getOption("db-url", dbUrl);
     HEPDao dao;
     dao.connect(dbUrl);
-    HEPCaptureAgent agent(service, dao);
+    HEPCaptureAgent agent(osServiceOptions, dao);
     agent.run();
-    service.waitForTerminationRequest();
+    sipXApplication.waitForTerminationRequest();
     agent.stop();
   }
 
