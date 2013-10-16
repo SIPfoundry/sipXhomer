@@ -32,40 +32,26 @@ int main(int argc , char** argv)
       "",
       "",
       "",
-      "1.0",
-      "Ezuce Inc. All Rights Reserved",
       false, // do not check mongo connection
       true, // increase application file descriptor limits
-      SipXApplicationData::CmdLineOptDefaults, // command line default options: parse command line and show version and help
       SipXApplicationData::ConfigFileFormatIni, // format type for configuration file
-      SipXApplicationData::DaemonizeInitTypeOsServiceOptions,// Daemonize type service options
-#ifdef SERVICE_NO_LOGGER
-      SipXApplicationData::LoggerInitTypeNone,               // No logger
-#else
-      SipXApplicationData::LoggerInitTypeOsServiceOptions,   // Logger init type service options
-#endif
       OsMsgQShared::QUEUE_LIMITED, //limited queue
   };
 
   SipXApplication& sipXApplication = SipXApplication::instance();
   OsServiceOptions& osServiceOptions = sipXApplication.getConfig();
 
-  if (!sipXApplication.init(argc, argv, homerData))
-  {
-    sipXApplication.displayUsage(std::cerr);
-    return -1;
-  }
-  else
-  {
-    string dbUrl;
-    osServiceOptions.getOption("db-url", dbUrl);
-    HEPDao dao;
-    dao.connect(dbUrl);
-    HEPCaptureAgent agent(osServiceOptions, dao);
-    agent.run();
-    sipXApplication.waitForTerminationRequest();
-    agent.stop();
-  }
+  // NOTE: this might exit application in case of failure
+  sipXApplication.init(argc, argv, homerData);
+
+  string dbUrl;
+  osServiceOptions.getOption("db-url", dbUrl);
+  HEPDao dao;
+  dao.connect(dbUrl);
+  HEPCaptureAgent agent(osServiceOptions, dao);
+  agent.run();
+  sipXApplication.waitForTerminationRequest(1);
+  agent.stop();
 
   return 0;
 }
