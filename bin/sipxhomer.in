@@ -27,7 +27,7 @@ start() {
       runuser - @SIPXPBXUSER@ -c "$exec $SIPXHOMER_OPTS"
     else
       echo -n $"Starting $prog: "
-      daemon --user @SIPXPBXUSER@ --pidfile $pidfile $exec $SIPXHOMER_OPTS --daemonize
+      daemon --user @SIPXPBXUSER@ --pidfile $pidfile $exec $SIPXHOMER_OPTS
       Status=$?
       echo_success
     fi
