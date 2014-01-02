@@ -13,6 +13,7 @@ BuildRequires: automake
 BuildRequires: java-devel >= 1.6
 BuildRequires: sipxsupervisor >= %version
 BuildRequires: sipxconfig >= %version
+BuildRequires: hredis-devel
 BuildRequires: zeromq-devel
 BuildRequires: sipxsqa-devel >= %version
 BuildRequires: sipxproxy-devel >= %version
