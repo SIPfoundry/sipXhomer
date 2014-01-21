@@ -48,6 +48,11 @@ public class HomerDbManager implements BeanFactoryAware, FeatureListener, PostCo
     private ListableBeanFactory m_beanFactory;
     private JdbcTemplate m_configJdbcTemplate;
     private FeatureManager m_featureManager;
+    private String m_serviceScript;
+
+    public void setServiceScript(String homerServiceScript) {
+        m_serviceScript = homerServiceScript;
+    }
 
     /**
      * Ensure each proxy is listed in homer's hosts table. 
@@ -149,8 +154,8 @@ public class HomerDbManager implements BeanFactoryAware, FeatureListener, PostCo
         FeatureManager fm = manager.getFeatureManager();
         if (fm.isFeatureEnabled(Homer.FEATURE_CAPTURE_SERVER, location) || fm.isFeatureEnabled(Homer.FEATURE_WEB, location)) {
             return Collections.singleton(new ArchiveDefinition(Homer.ARCHIVE,
-                    "$(sipx.SIPX_SERVICEDIR)/sipxhomer backup %s",
-                    "$(sipx.SIPX_SERVICEDIR)/sipxhomer restore %s"));
+                    m_serviceScript + " backup %s",
+                    m_serviceScript + " restore %s"));
         }
         return null;
     }
