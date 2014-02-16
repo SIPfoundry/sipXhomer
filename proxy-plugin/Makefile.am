@@ -31,5 +31,4 @@ libsipXhomerProxyPlugin_la_LIBADD = \
 	-lmongoclient \
 	-lboost_system-mt \
 	@SIPXPORT_LIBS@ \
-	@SIPXCOMMSERVER_LIBS@ \
-	@SIPXSQA_LIBS@
+	@SIPXCOMMSERVER_LIBS@
