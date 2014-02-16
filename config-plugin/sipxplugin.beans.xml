@@ -74,6 +74,7 @@
   <bean id="homerDbManager" class="org.sipfoundry.sipxconfig.homer.HomerDbManager">
     <property name="configJdbcTemplate" ref="configJdbcTemplate"/>
     <property name="featureManager" ref="featureManager"/>
+    <property name="serviceScript" value="${sysdir.service}/sipxhomer"/>
   </bean>
   
 </beans>
