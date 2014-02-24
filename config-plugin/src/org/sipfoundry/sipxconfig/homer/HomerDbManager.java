@@ -27,6 +27,7 @@ import org.apache.commons.lang.StringUtils;
 import org.sipfoundry.sipxconfig.backup.ArchiveDefinition;
 import org.sipfoundry.sipxconfig.backup.ArchiveProvider;
 import org.sipfoundry.sipxconfig.backup.BackupManager;
+import org.sipfoundry.sipxconfig.backup.BackupPlan;
 import org.sipfoundry.sipxconfig.backup.BackupSettings;
 import org.sipfoundry.sipxconfig.cfgmgt.ConfigManager;
 import org.sipfoundry.sipxconfig.cfgmgt.ConfigRequest;
@@ -150,7 +151,7 @@ public class HomerDbManager implements BeanFactoryAware, FeatureListener, PostCo
 
     @Override
     public Collection<ArchiveDefinition> getArchiveDefinitions(BackupManager manager, Location location,
-            BackupSettings manualSettings) {
+            BackupPlan plan, BackupSettings manualSettings) {
         FeatureManager fm = manager.getFeatureManager();
         if (fm.isFeatureEnabled(Homer.FEATURE_CAPTURE_SERVER, location) || fm.isFeatureEnabled(Homer.FEATURE_WEB, location)) {
             return Collections.singleton(new ArchiveDefinition(Homer.ARCHIVE,
