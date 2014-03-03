@@ -18,7 +18,7 @@ BuildRequires: libev-devel
 BuildRequires: zeromq-devel
 BuildRequires: sipxsqa-devel >= %version
 BuildRequires: sipxproxy-devel >= %version
-BuildRequires: resiprocate-devel
+BuildRequires: sipxresiprocate-devel
 BuildRequires: unixODBC-devel
 BuildRequires: mysql-connector-odbc
 
@@ -26,6 +26,7 @@ Requires: sipxsqa >= %version
 Requires: mysql-connector-odbc
 Requires: homer
 Requires: php-pecl-mongo
+Requires: sipxresiprocate-libs
 
 Source: %name-%version.tar.gz
 Prefix: %_prefix
