@@ -25,11 +25,11 @@ homer_PKGS = \
 	commons-lang \
 	tapestry-annotations \
 	tapestry-framework \
-	org.springframework.core \
+	spring-core \
 	org.springframework.transaction \
 	org.springframework.jdbc \
-	org.springframework.context \
-	org.springframework.beans \
+	spring-context \
+	spring-beans \
 	hivemind
 
 homer_DEPS = \
