@@ -10,7 +10,7 @@ Packager: Douglas Hubler <dhubler@ezuce.com>
 Url: http://www.sipfoundry.org
 
 BuildRequires: automake
-BuildRequires: java-devel >= 1.7
+BuildRequires: java-1.7.0-openjdk-devel
 BuildRequires: sipxsupervisor >= %version
 BuildRequires: sipxconfig >= %version
 BuildRequires: hiredis-devel
